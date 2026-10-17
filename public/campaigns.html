@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop Giày — Chiến dịch</title><link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">👟</div><div><strong>Shop Giày</strong><span>Email Campaign</span></div></div>
+    <nav class="nav">
+      <a href="index.html"><span class="icon">⌂</span>Tổng quan</a><a href="campaigns.html"><span class="icon">◫</span>Chiến dịch</a><a href="email.html"><span class="icon">✉</span>Soạn & gửi</a><a href="tracking.html"><span class="icon">◎</span>Theo dõi</a><a href="products.html"><span class="icon">◆</span>Sản phẩm</a><a href="customers.html"><span class="icon">♙</span>Khách hàng</a>
+    </nav>
+    <div class="sidebar-note">Tạo chiến dịch và quản lý trạng thái ở một trang riêng.</div>
+  </aside>
+  <main class="main">
+    <header class="page-head"><div><h1>Chiến dịch</h1><p>Tạo chiến dịch mới, hủy chiến dịch đang gửi hoặc xóa chiến dịch cũ.</p></div></header>
+
+    <section class="card">
+      <div class="card-head"><h2>Tạo chiến dịch mới</h2></div>
+      <div class="card-body">
+        <form id="campaign-form" class="form-grid">
+          <div class="form-group"><label>Tên chiến dịch</label><input id="campaign-name" maxlength="150" required placeholder="Ưu đãi sneaker cuối tuần"></div>
+          <div class="form-group"><label>Sản phẩm</label><select id="campaign-product" required><option value="">Đang tải...</option></select></div>
+          <div class="form-group"><label>Nhóm khách nhận mail</label><select id="campaign-group" required><option value="basketball">Giày bóng rổ</option><option value="running">Giày chạy bộ</option><option value="sneaker">Sneaker</option><option value="general">Nhóm chung</option></select></div>
+          <div class="form-group"><label>Tiêu đề email ban đầu</label><input id="campaign-subject" maxlength="255" required placeholder="{{name}} ơi, xem ưu đãi mới 👟"></div>
+          <div class="form-group full"><div class="actions"><button class="btn btn-primary" id="save-campaign" type="submit">Lưu bản nháp</button></div><p id="campaign-status" class="message"></p></div>
+        </form>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:20px">
+      <div class="card-head"><h2>Danh sách chiến dịch</h2><button id="refresh-campaigns" class="btn btn-ghost" type="button">Làm mới</button></div>
+      <div class="card-body">
+        <div class="table-wrap"><table><thead><tr><th>Mã</th><th>Chiến dịch</th><th>Sản phẩm</th><th>Nhóm khách</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="campaign-list"></tbody></table></div>
+        <p id="campaign-list-status" class="message"></p>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="/common.js"></script><script src="/campaigns.js"></script>
+</body></html>

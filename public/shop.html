@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>PhanhShoes - Shop Giày</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      color: #222;
+    }
+
+    /* HEADER */
+    header {
+      background: #111;
+      color: white;
+      padding: 18px 8%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .logo span {
+      color: #ff5a5f;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 25px;
+      font-size: 15px;
+    }
+
+    nav a:hover {
+      color: #ff5a5f;
+    }
+
+    /* HERO */
+    .hero {
+      min-height: 500px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 60px 8%;
+      background:
+        linear-gradient(
+          90deg,
+          rgba(0,0,0,0.9),
+          rgba(0,0,0,0.55)
+        ),
+        url(
+          "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1600&q=80"
+        );
+
+      background-size: cover;
+      background-position: center;
+      color: white;
+    }
+
+    .hero-content {
+      max-width: 600px;
+    }
+
+    .hero h1 {
+      font-size: 58px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 span {
+      color: #ff5a5f;
+    }
+
+    .hero p {
+      font-size: 19px;
+      line-height: 1.7;
+      margin-bottom: 30px;
+      color: #eee;
+    }
+
+    .hero-btn {
+      display: inline-block;
+      padding: 14px 28px;
+      background: #ff5a5f;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    .hero-btn:hover {
+      transform: translateY(-3px);
+      background: #e9484e;
+    }
+
+    /* SECTION */
+    section {
+      padding: 70px 8%;
+    }
+
+    .section-title {
+      text-align: center;
+      margin-bottom: 45px;
+    }
+
+    .section-title h2 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+
+    .section-title p {
+      color: #777;
+      font-size: 16px;
+    }
+
+    /* INTRO */
+    .about {
+      background: white;
+    }
+
+    .about-content {
+      max-width: 900px;
+      margin: auto;
+      text-align: center;
+      line-height: 1.8;
+      color: #555;
+      font-size: 17px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+      margin-top: 45px;
+    }
+
+    .feature {
+      background: #fafafa;
+      padding: 30px;
+      border-radius: 14px;
+      text-align: center;
+      border: 1px solid #eee;
+    }
+
+    .feature .icon {
+      font-size: 38px;
+      margin-bottom: 15px;
+    }
+
+    .feature h3 {
+      margin-bottom: 10px;
+    }
+
+    .feature p {
+      color: #777;
+      font-size: 14px;
+    }
+
+    /* PRODUCT */
+    .products {
+      background: #f5f5f5;
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(auto-fit, minmax(250px, 1fr));
+      gap: 28px;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+      transition: 0.3s;
+    }
+
+    .product-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    }
+
+    .product-card img {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .product-info {
+      padding: 22px;
+    }
+
+    .product-info h3 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    .product-description {
+      color: #777;
+      line-height: 1.5;
+      min-height: 44px;
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+
+    .price {
+      color: #e53935;
+      font-size: 21px;
+      font-weight: bold;
+      margin-bottom: 18px;
+    }
+
+    .buy-btn {
+      display: block;
+      width: 100%;
+      border: none;
+      background: #111;
+      color: white;
+      padding: 13px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: bold;
+      text-decoration: none;
+      text-align: center;
+      transition: 0.3s;
+    }
+
+    .buy-btn:hover {
+      background: #ff5a5f;
+    }
+
+    /* EMPTY / LOADING */
+    .message {
+      text-align: center;
+      padding: 40px;
+      color: #777;
+      grid-column: 1 / -1;
+    }
+
+    /* CONTACT */
+    .contact {
+      background: #111;
+      color: white;
+      text-align: center;
+    }
+
+    .contact h2 {
+      font-size: 34px;
+      margin-bottom: 15px;
+    }
+
+    .contact p {
+      color: #ccc;
+      margin: 8px 0;
+    }
+
+    /* FOOTER */
+    footer {
+      background: #080808;
+      color: #999;
+      text-align: center;
+      padding: 22px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+
+      nav {
+        display: none;
+      }
+
+      .hero {
+        min-height: 420px;
+      }
+
+      .hero h1 {
+        font-size: 42px;
+      }
+
+      .features {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header>
+
+    <div class="logo">
+      Phanh<span>Shoes</span>
+    </div>
+
+    <nav>
+      <a href="#home">Trang chủ</a>
+      <a href="#about">Giới thiệu</a>
+      <a href="#products">Sản phẩm</a>
+      <a href="#contact">Liên hệ</a>
+    </nav>
+
+  </header>
+
+
+  <!-- HERO -->
+  <section class="hero" id="home">
+
+    <div class="hero-content">
+
+      <h1>
+        Phong cách bắt đầu từ
+        <span>PhanhShoes</span>
+      </h1>
+
+      <p>
+        Khám phá những mẫu giày nổi bật tại PhanhShoes.
+        Nhiều phong cách trẻ trung, năng động và phù hợp
+        cho mọi hoạt động hằng ngày.
+      </p>
+
+      <a href="#products" class="hero-btn">
+        Khám phá sản phẩm
+      </a>
+
+    </div>
+
+  </section>
+
+
+  <!-- ABOUT -->
+  <section class="about" id="about">
+
+    <div class="section-title">
+      <h2>Về PhanhShoes</h2>
+      <p>Đồng hành cùng phong cách của bạn</p>
+    </div>
+
+    <div class="about-content">
+
+      <p>
+        PhanhShoes là cửa hàng chuyên cung cấp các mẫu giày
+        trẻ trung và hiện đại. Chúng tôi mong muốn mang đến
+        cho khách hàng những sản phẩm phù hợp với nhiều phong
+        cách khác nhau cùng trải nghiệm mua sắm thuận tiện.
+      </p>
+
+      <div class="features">
+
+        <div class="feature">
+          <div class="icon">👟</div>
+          <h3>Nhiều mẫu giày</h3>
+          <p>
+            Thường xuyên cập nhật các mẫu giày mới
+            và phong cách đa dạng.
+          </p>
+        </div>
+
+        <div class="feature">
+          <div class="icon">✨</div>
+          <h3>Phong cách hiện đại</h3>
+          <p>
+            Những thiết kế phù hợp với phong cách
+            trẻ trung và năng động.
+          </p>
+        </div>
+
+        <div class="feature">
+          <div class="icon">❤️</div>
+          <h3>Khách hàng là ưu tiên</h3>
+          <p>
+            PhanhShoes luôn mong muốn mang lại trải nghiệm
+            tốt cho khách hàng.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- PRODUCTS -->
+  <section class="products" id="products">
+
+    <div class="section-title">
+
+      <h2>Sản phẩm tại PhanhShoes</h2>
+
+      <p>
+        Những mẫu giày hiện đang có tại cửa hàng
+      </p>
+
+    </div>
+
+    <div
+      class="product-grid"
+      id="productGrid"
+    >
+
+      <div class="message">
+        Đang tải sản phẩm...
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- CONTACT -->
+  <section class="contact" id="contact">
+
+    <h2>PhanhShoes</h2>
+
+    <p>
+      👟 Shop giày dành cho phong cách của bạn
+    </p>
+
+    <p>
+      Cảm ơn bạn đã quan tâm đến sản phẩm của PhanhShoes.
+    </p>
+
+  </section>
+
+
+  <footer>
+    © 2026 PhanhShoes. All rights reserved.
+  </footer>
+
+
+  <script>
+
+    const defaultImages = [
+
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80",
+
+      "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=80",
+
+      "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=700&q=80",
+
+      "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=700&q=80",
+
+      "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=700&q=80",
+
+      "https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=700&q=80"
+
+    ];
+
+
+    function escapeHtml(value) {
+
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+    }
+
+
+    function formatPrice(value) {
+
+      const price = Number(value);
+
+      if (!Number.isFinite(price)) {
+        return "Liên hệ";
+      }
+
+      return price.toLocaleString("vi-VN") + " ₫";
+
+    }
+
+
+    async function loadProducts() {
+
+      const grid =
+        document.getElementById("productGrid");
+
+      try {
+
+        const response =
+          await fetch("/api/products");
+
+        if (!response.ok) {
+          throw new Error(
+            "Không tải được sản phẩm."
+          );
+        }
+
+        const data =
+          await response.json();
+
+        const products =
+          Array.isArray(data)
+            ? data
+            : data.products || [];
+
+
+        if (!products.length) {
+
+          grid.innerHTML = `
+            <div class="message">
+              Hiện tại PhanhShoes chưa có sản phẩm.
+            </div>
+          `;
+
+          return;
+        }
+
+
+        grid.innerHTML = "";
+
+
+        products.forEach((product, index) => {
+
+          const name =
+            product.name ||
+            product.product_name ||
+            product.ten_san_pham ||
+            "Sản phẩm PhanhShoes";
+
+
+          const description =
+            product.description ||
+            product.mo_ta ||
+            product.category ||
+            "Mẫu giày nổi bật tại PhanhShoes.";
+
+
+          const price =
+            product.price ||
+            product.gia ||
+            product.sale_price;
+
+
+          const image =
+            product.image_url ||
+            product.image ||
+            defaultImages[
+              index % defaultImages.length
+            ];
+
+
+          const card =
+            document.createElement("div");
+
+          card.className =
+            "product-card";
+
+
+          card.innerHTML = `
+
+            <img
+              src="${escapeHtml(image)}"
+              alt="${escapeHtml(name)}"
+              onerror="
+                this.src='${defaultImages[
+                  index % defaultImages.length
+                ]}'
+              "
+            >
+
+            <div class="product-info">
+
+              <h3>
+                ${escapeHtml(name)}
+              </h3>
+
+              <div class="product-description">
+                ${escapeHtml(description)}
+              </div>
+
+              <div class="price">
+                ${formatPrice(price)}
+              </div>
+
+              <a
+                class="buy-btn"
+                href="#contact"
+              >
+                Liên hệ đặt hàng
+              </a>
+
+            </div>
+
+          `;
+
+
+          grid.appendChild(card);
+
+        });
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        grid.innerHTML = `
+          <div class="message">
+            Không thể tải danh sách sản phẩm.
+          </div>
+        `;
+
+      }
+
+    }
+
+
+    loadProducts();
+
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shop Giày — Soạn & gửi</title><link rel="stylesheet" href="/style.css"></head>
+<body><div class="app-shell">
+<aside class="sidebar"><div class="brand"><div class="brand-mark">👟</div><div><strong>Shop Giày</strong><span>Email Campaign</span></div></div><nav class="nav"><a href="index.html"><span class="icon">⌂</span>Tổng quan</a><a href="campaigns.html"><span class="icon">◫</span>Chiến dịch</a><a href="email.html"><span class="icon">✉</span>Soạn & gửi</a><a href="tracking.html"><span class="icon">◎</span>Theo dõi</a><a href="products.html"><span class="icon">◆</span>Sản phẩm</a><a href="customers.html"><span class="icon">♙</span>Khách hàng</a></nav><div class="sidebar-note">AI có thể bổ sung sau. Hiện nội dung vẫn được người dùng xem trước và duyệt trước khi gửi.</div></aside>
+<main class="main">
+<header class="page-head"><div><h1>Soạn & gửi email</h1><p>Chọn chiến dịch, soạn nội dung, xem trước, duyệt rồi mới đưa vào hàng chờ.</p></div><a class="btn btn-soft" href="tracking.html">Xem theo dõi →</a></header>
+<section class="card"><div class="card-body"><div class="toolbar"><select id="edit-campaign" class="grow"><option value="">Chọn chiến dịch cần soạn</option></select><button id="refresh-campaigns" class="btn btn-ghost" type="button">Làm mới</button></div><p id="editor-info" class="message">Chưa chọn chiến dịch.</p></div></section>
+<section class="editor-layout" style="margin-top:20px">
+  <div class="card"><div class="card-head"><h2>Nội dung email</h2></div><div class="card-body">
+    <!-- AI TẠO EMAIL -->
+<div style="
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:16px;
+  margin-bottom:20px;
+  background:#fafafa;
+">
+
+  <h3 style="margin-top:0">
+    ✨ Tạo email bằng AI
+  </h3>
+
+  <div class="form-group">
+    <label>Tên sản phẩm</label>
+    <input
+      id="ai-product-name"
+      type="text"
+      placeholder="Ví dụ: Nike Air Force 1"
+    >
+  </div>
+
+  <div class="form-group" style="margin-top:12px">
+    <label>Khuyến mãi</label>
+    <input
+      id="ai-promotion"
+      type="text"
+      placeholder="Ví dụ: Giảm 20%"
+    >
+  </div>
+
+  <div class="form-group" style="margin-top:12px">
+    <label>Phong cách nội dung</label>
+
+    <select id="ai-tone">
+      <option value="Trẻ trung">Trẻ trung</option>
+      <option value="Năng động">Năng động</option>
+      <option value="Sang trọng">Sang trọng</option>
+      <option value="Thân thiện">Thân thiện</option>
+      <option value="Ngắn gọn">Ngắn gọn</option>
+    </select>
+  </div>
+
+  <div class="form-group" style="margin-top:12px">
+    <label>Yêu cầu thêm</label>
+
+    <textarea
+      id="ai-extra-request"
+      placeholder="Ví dụ: Nhấn mạnh ưu đãi cuối tuần, nội dung nổi bật..."
+      style="min-height:80px"
+    ></textarea>
+  </div>
+
+  <button
+    id="generate-ai-email"
+    class="btn btn-primary"
+    type="button"
+    style="margin-top:14px"
+  >
+    ✨ Tạo nội dung bằng AI
+  </button>
+
+  <p
+    id="ai-message"
+    class="message"
+    style="margin-bottom:0"
+  ></p>
+
+</div>
+    <div class="form-group"><label>Tiêu đề</label><input id="edit-subject" maxlength="255"></div>
+    <div class="form-group" style="margin-top:14px"><label>HTML</label><textarea id="edit-html" class="code-area" placeholder="Nhập HTML hoặc bấm Tạo mẫu sản phẩm"></textarea><small>Dùng <b>{{name}}</b> cho tên người nhận và <b>{{product_url}}</b> cho nút sản phẩm có tracking.</small></div>
+    <div class="actions" style="margin-top:14px"><button id="make-template" class="btn btn-soft" type="button">Tạo mẫu sản phẩm</button><button id="preview-email" class="btn btn-ghost" type="button">Xem trước</button><button id="save-email" class="btn btn-primary" type="button">Lưu nội dung</button><button id="approve-email" class="btn btn-success" type="button">Lưu và duyệt</button></div>
+    <p id="editor-message" class="message"></p>
+  </div></div>
+  <div class="card"><div class="card-head"><h2>Bản xem trước</h2></div><div class="card-body"><iframe id="email-preview" title="Xem trước email" sandbox="" referrerpolicy="no-referrer"></iframe></div></div>
+</section>
+<section class="card" style="margin-top:20px"><div class="card-head"><h2>Gửi chiến dịch</h2></div><div class="card-body"><p style="color:var(--muted);margin-top:0">Chỉ chiến dịch đã duyệt mới được đưa vào hàng chờ. n8n sẽ lấy từng email để gửi.</p><div class="actions"><button id="queue-campaign" class="btn btn-primary" type="button">Đưa vào hàng chờ gửi</button><a class="btn btn-ghost" href="tracking.html">Mở trang theo dõi</a></div><p id="delivery-message" class="message"></p></div></section>
+</main></div><script src="/common.js"></script><script src="/email.js"></script></body></html>

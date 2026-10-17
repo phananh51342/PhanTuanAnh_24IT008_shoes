@@ -1,0 +1,1543 @@
+require("dotenv").config();
+const OpenAI = require("openai");
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+const crypto = require("crypto");
+const path = require("path");
+
+const express = require("express");
+const mysql = require("mysql2/promise");
+
+const app = express();
+app.use((req, res, next) => {
+  console.log("Nhận yêu cầu:", req.method, req.url);
+  next();
+});
+app.use(express.json());
+
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 5
+});
+
+app.use(express.static(path.join(__dirname, "public")));
+
+// Lấy danh sách khách hàng
+app.get("/api/customers", async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, full_name, email, interest_group, subscribed
+       FROM customers ORDER BY id DESC`
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("Lỗi lấy khách hàng:", error.message);
+    res.status(500).json({ error: "Không lấy được khách hàng" });
+  }
+});
+// Thêm khách hàng
+app.post("/api/customers", async (req, res) => {
+  const {
+    full_name,
+    email,
+    interest_group,
+    subscribed
+  } = req.body;
+
+  const validGroups = [
+    "basketball",
+    "running",
+    "sneaker",
+    "general"
+  ];
+
+  if (
+    typeof full_name !== "string" ||
+    !full_name.trim() ||
+    typeof email !== "string" ||
+    !email.trim() ||
+    !validGroups.includes(interest_group)
+  ) {
+    return res.status(400).json({
+      error: "Thông tin khách hàng không hợp lệ."
+    });
+  }
+
+  try {
+    const receiveAds = Boolean(subscribed);
+
+    const [result] = await pool.execute(`
+      INSERT INTO customers
+      (
+        full_name,
+        email,
+        interest_group,
+        subscribed,
+        consent_at
+      )
+      VALUES (?, ?, ?, ?, ?)
+    `, [
+      full_name.trim(),
+      email.trim().toLowerCase(),
+      interest_group,
+      receiveAds,
+      receiveAds ? new Date() : null
+    ]);
+
+    res.status(201).json({
+      id: result.insertId,
+      message: "Đã thêm khách hàng."
+    });
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        error: "Email này đã tồn tại."
+      });
+    }
+
+    console.error(error.message);
+    res.status(500).json({
+      error: "Không thêm được khách hàng."
+    });
+  }
+});
+
+
+// Sửa khách hàng
+app.patch("/api/customers/:id", async (req, res) => {
+  const id = Number(req.params.id);
+
+  const {
+    full_name,
+    email,
+    interest_group,
+    subscribed
+  } = req.body;
+
+  const validGroups = [
+    "basketball",
+    "running",
+    "sneaker",
+    "general"
+  ];
+
+  if (
+    !Number.isInteger(id) ||
+    id < 1 ||
+    typeof full_name !== "string" ||
+    !full_name.trim() ||
+    typeof email !== "string" ||
+    !email.trim() ||
+    !validGroups.includes(interest_group)
+  ) {
+    return res.status(400).json({
+      error: "Thông tin khách hàng không hợp lệ."
+    });
+  }
+
+  try {
+    const receiveAds = Boolean(subscribed);
+
+    const [result] = await pool.execute(`
+      UPDATE customers
+      SET
+        full_name = ?,
+        email = ?,
+        interest_group = ?,
+        subscribed = ?,
+        consent_at = CASE
+          WHEN ? = TRUE AND subscribed = FALSE THEN NOW()
+          WHEN ? = FALSE THEN NULL
+          ELSE consent_at
+        END
+      WHERE id = ?
+    `, [
+      full_name.trim(),
+      email.trim().toLowerCase(),
+      interest_group,
+      receiveAds,
+      receiveAds,
+      receiveAds,
+      id
+    ]);
+
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        error: "Không tìm thấy khách hàng."
+      });
+    }
+
+    res.json({
+      message: "Đã cập nhật khách hàng."
+    });
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        error: "Email này đã được sử dụng."
+      });
+    }
+
+    console.error(error.message);
+    res.status(500).json({
+      error: "Không sửa được khách hàng."
+    });
+  }
+});
+// Lấy danh sách sản phẩm
+app.get("/api/products", async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      "SELECT * FROM products ORDER BY id DESC"
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("Lỗi lấy sản phẩm:", error.message);
+    res.status(500).json({ error: "Không lấy được sản phẩm" });
+  }
+});
+// Thêm sản phẩm giày
+app.post("/api/products", async (req, res) => {
+  const {
+    name,
+    category,
+    price,
+    sale_price,
+    image_url,
+    product_url,
+    description
+  } = req.body;
+
+  const normalPrice = Number(price);
+
+  const salePrice =
+    sale_price === "" ||
+    sale_price === null ||
+    sale_price === undefined
+      ? null
+      : Number(sale_price);
+
+  if (
+    typeof name !== "string" ||
+    !name.trim() ||
+    typeof category !== "string" ||
+    !category.trim() ||
+    !Number.isFinite(normalPrice) ||
+    normalPrice < 0 ||
+    (salePrice !== null &&
+      (!Number.isFinite(salePrice) || salePrice < 0))
+  ) {
+    return res.status(400).json({
+      error: "Thông tin sản phẩm không hợp lệ."
+    });
+  }
+
+  try {
+    const [result] = await pool.execute(`
+      INSERT INTO products
+      (
+        name,
+        category,
+        price,
+        sale_price,
+        image_url,
+        product_url,
+        description
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
+      name.trim(),
+      category.trim(),
+      normalPrice,
+      salePrice,
+      image_url?.trim() || null,
+      product_url?.trim() || null,
+      description?.trim() || null
+    ]);
+
+    res.status(201).json({
+      id: result.insertId,
+      message: "Đã thêm mẫu giày."
+    });
+  } catch (error) {
+    console.error(error.message);
+
+    res.status(500).json({
+      error: "Không thêm được sản phẩm."
+    });
+  }
+});
+// ================================
+// SỬA SẢN PHẨM
+// ================================
+app.patch("/api/products/:id", async (req, res) => {
+  const id = Number(req.params.id);
+
+  const {
+    name,
+    category,
+    price,
+    sale_price,
+    image_url,
+    product_url,
+    description
+  } = req.body;
+
+  const normalPrice = Number(price);
+
+  const salePrice =
+    sale_price === "" ||
+    sale_price === null ||
+    sale_price === undefined
+      ? null
+      : Number(sale_price);
+
+  if (
+    !Number.isInteger(id) ||
+    id < 1 ||
+    typeof name !== "string" ||
+    !name.trim() ||
+    typeof category !== "string" ||
+    !category.trim() ||
+    !Number.isFinite(normalPrice) ||
+    normalPrice < 0 ||
+    (
+      salePrice !== null &&
+      (!Number.isFinite(salePrice) || salePrice < 0)
+    )
+  ) {
+    return res.status(400).json({
+      error: "Thông tin sản phẩm không hợp lệ."
+    });
+  }
+
+  try {
+    const [result] = await pool.execute(`
+      UPDATE products
+      SET
+        name = ?,
+        category = ?,
+        price = ?,
+        sale_price = ?,
+        image_url = ?,
+        product_url = ?,
+        description = ?
+      WHERE id = ?
+    `, [
+      name.trim(),
+      category.trim(),
+      normalPrice,
+      salePrice,
+      image_url?.trim() || null,
+      product_url?.trim() || null,
+      description?.trim() || null,
+      id
+    ]);
+
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        error: "Không tìm thấy sản phẩm."
+      });
+    }
+
+    res.json({
+      message: "Đã cập nhật sản phẩm."
+    });
+
+  } catch (error) {
+    console.error("Lỗi sửa sản phẩm:", error.message);
+
+    res.status(500).json({
+      error: "Không sửa được sản phẩm."
+    });
+  }
+});
+
+
+// ================================
+// XÓA SẢN PHẨM
+// ================================
+app.delete("/api/products/:id", async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({
+      message: "ID sản phẩm không hợp lệ."
+    });
+  }
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // Bỏ liên kết sản phẩm khỏi các chiến dịch cũ
+    await connection.execute(
+      `
+      UPDATE campaigns
+      SET product_id = NULL
+      WHERE product_id = ?
+      `,
+      [id]
+    );
+
+    // Xóa sản phẩm
+    const [result] = await connection.execute(
+      `
+      DELETE FROM products
+      WHERE id = ?
+      `,
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+
+      return res.status(404).json({
+        message: "Không tìm thấy sản phẩm."
+      });
+    }
+
+    await connection.commit();
+
+    res.json({
+      message: "Đã xóa sản phẩm."
+    });
+
+  } catch (error) {
+    await connection.rollback();
+
+    console.error("Lỗi xóa sản phẩm:", error);
+
+    res.status(500).json({
+      message: "Không thể xóa sản phẩm."
+    });
+
+  } finally {
+    connection.release();
+  }
+});
+// Tạo chiến dịch nháp
+app.post("/api/campaigns", async (req, res) => {
+  const { name, product_id, target_group, subject } = req.body;
+  const productId = Number(product_id);
+
+  const validGroups = ["basketball", "running", "sneaker", "general"];
+
+  if (
+    typeof name !== "string" || !name.trim() || name.length > 150 ||
+    typeof subject !== "string" || !subject.trim() || subject.length > 255 ||
+    !Number.isInteger(productId) || productId < 1 ||
+    !validGroups.includes(target_group)
+  ) {
+    return res.status(400).json({
+      error: "Vui lòng điền đầy đủ và đúng thông tin chiến dịch."
+    });
+  }
+
+  try {
+    const [products] = await pool.execute(
+      "SELECT id FROM products WHERE id = ?",
+      [productId]
+    );
+
+    if (products.length === 0) {
+      return res.status(400).json({ error: "Sản phẩm không tồn tại." });
+    }
+
+    const [result] = await pool.execute(
+      `INSERT INTO campaigns
+       (name, product_id, target_group, subject)
+       VALUES (?, ?, ?, ?)`,
+      [name.trim(), productId, target_group, subject.trim()]
+    );
+
+    res.status(201).json({
+      id: result.insertId,
+      message: "Đã lưu chiến dịch nháp!"
+    });
+  } catch (error) {
+    console.error("Lỗi tạo chiến dịch:", error.message);
+    res.status(500).json({ error: "Không lưu được chiến dịch." });
+  }
+});
+// Danh sách chiến dịch
+app.get("/api/campaigns", async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT
+        c.id, c.name, c.subject, c.target_group,
+        c.status, c.created_at,
+        p.name AS product_name
+      FROM campaigns c
+      JOIN products p ON p.id = c.product_id
+      ORDER BY c.id DESC
+    `);
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Lỗi lấy chiến dịch:", error.message);
+    res.status(500).json({
+      error: "Không tải được danh sách chiến dịch."
+    });
+  }
+});
+// Hủy chiến dịch đang gửi
+app.post("/api/campaigns/:id/cancel", async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({
+      error: "Mã chiến dịch không hợp lệ."
+    });
+  }
+
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // Khóa campaign trong lúc hủy
+    const [campaigns] = await connection.execute(
+      "SELECT status FROM campaigns WHERE id = ? FOR UPDATE",
+      [id]
+    );
+
+    if (!campaigns.length) {
+      await connection.rollback();
+
+      return res.status(404).json({
+        error: "Không tìm thấy chiến dịch."
+      });
+    }
+
+    if (campaigns[0].status !== "sending") {
+      await connection.rollback();
+
+      return res.status(409).json({
+        error: "Chỉ có thể hủy chiến dịch đang gửi."
+      });
+    }
+
+    // Ngừng cho worker lấy thêm email
+    await connection.execute(
+      "UPDATE campaigns SET status = 'cancelled' WHERE id = ?",
+      [id]
+    );
+
+    // Những email chưa được n8n lấy sẽ bỏ qua
+    const [skippedResult] = await connection.execute(`
+      UPDATE campaign_recipients
+      SET status = 'skipped',
+          error_message = 'Chiến dịch đã được hủy.'
+      WHERE campaign_id = ?
+        AND status = 'pending'
+    `, [id]);
+
+    // Kiểm tra có email nào n8n đang xử lý không
+    const [sendingRows] = await connection.execute(`
+      SELECT COUNT(*) AS total
+      FROM campaign_recipients
+      WHERE campaign_id = ?
+        AND status = 'sending'
+    `, [id]);
+
+    await connection.commit();
+
+    res.json({
+      message: "Đã hủy chiến dịch.",
+      skipped: skippedResult.affectedRows,
+      processing: Number(sendingRows[0].total)
+    });
+
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+
+    console.error("Lỗi hủy chiến dịch:", error.message);
+
+    res.status(500).json({
+      error: "Không hủy được chiến dịch."
+    });
+
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+});
+// Xóa chiến dịch cũ.
+// Không cho xóa chiến dịch đang gửi.
+app.delete("/api/campaigns/:id", async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({
+      error: "Mã chiến dịch không hợp lệ."
+    });
+  }
+
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [campaigns] = await connection.execute(
+      "SELECT status FROM campaigns WHERE id = ? FOR UPDATE",
+      [id]
+    );
+
+    if (!campaigns.length) {
+      await connection.rollback();
+
+      return res.status(404).json({
+        error: "Không tìm thấy chiến dịch."
+      });
+    }
+
+    if (campaigns[0].status === "sending") {
+  await connection.rollback();
+
+  return res.status(409).json({
+    error: "Hãy hủy gửi trước khi xóa chiến dịch."
+  });
+}
+
+const [processingRows] = await connection.execute(`
+  SELECT COUNT(*) AS total
+  FROM campaign_recipients
+  WHERE campaign_id = ?
+    AND status = 'sending'
+`, [id]);
+
+if (Number(processingRows[0].total) > 0) {
+  await connection.rollback();
+
+  return res.status(409).json({
+    error:
+      "Vẫn còn email đang được n8n xử lý. Chờ email đó hoàn tất rồi xóa."
+  });
+}
+
+    // Xóa kết quả người nhận trước
+    await connection.execute(
+      "DELETE FROM campaign_recipients WHERE campaign_id = ?",
+      [id]
+    );
+
+    await connection.execute(
+      "DELETE FROM campaigns WHERE id = ?",
+      [id]
+    );
+
+    await connection.commit();
+
+    res.json({
+      message: "Đã xóa chiến dịch."
+    });
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+
+    console.error(error.message);
+
+    res.status(500).json({
+      error: "Không xóa được chiến dịch."
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+});
+// Xem chi tiết chiến dịch và số khách đủ điều kiện
+app.get("/api/campaigns/:id", async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({ error: "Mã chiến dịch không hợp lệ." });
+  }
+
+  try {
+    const [rows] = await pool.execute(`
+      SELECT c.*,
+             p.name AS product_name,
+             p.price, p.sale_price, p.description,
+             p.product_url, p.image_url
+      FROM campaigns c
+      JOIN products p ON p.id = c.product_id
+      WHERE c.id = ?
+    `, [id]);
+
+    if (!rows.length) {
+      return res.status(404).json({ error: "Không tìm thấy chiến dịch." });
+    }
+
+    const campaign = rows[0];
+
+    const [counts] = await pool.execute(`
+      SELECT COUNT(*) AS total
+      FROM customers
+      WHERE subscribed = TRUE AND interest_group = ?
+    `, [campaign.target_group]);
+
+    res.json({
+      ...campaign,
+      recipient_count: Number(counts[0].total)
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Không tải được chiến dịch." });
+  }
+});
+
+// Lưu nội dung. Sửa chiến dịch đã duyệt sẽ chuyển lại thành bản nháp.
+app.patch("/api/campaigns/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const { subject, html_content } = req.body;
+
+  if (
+    !Number.isInteger(id) || id < 1 ||
+    typeof subject !== "string" ||
+    !subject.trim() || subject.length > 255 ||
+    typeof html_content !== "string" ||
+    !html_content.trim() || html_content.length > 50000
+  ) {
+    return res.status(400).json({
+      error: "Nhập tiêu đề và nội dung hợp lệ; nội dung tối đa 50.000 ký tự."
+    });
+  }
+
+  try {
+    const [result] = await pool.execute(`
+      UPDATE campaigns
+SET subject = ?, html_content = ?, status = 'draft'
+WHERE id = ?
+  AND status IN (
+    'draft',
+    'approved',
+    'completed',
+    'failed',
+    'cancelled'
+  )
+    `, [subject.trim(), html_content.trim(), id]);
+
+    if (!result.affectedRows) {
+      return res.status(409).json({
+        error: "Không tìm thấy hoặc chiến dịch không còn được phép sửa."
+      });
+    }
+
+    res.json({ message: "Đã lưu nội dung dưới dạng bản nháp." });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Không lưu được nội dung." });
+  }
+});
+
+// Duyệt nội dung, chưa gửi email
+app.post("/api/campaigns/:id/approve", async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({ error: "Mã chiến dịch không hợp lệ." });
+  }
+
+  try {
+    const [result] = await pool.execute(`
+      UPDATE campaigns
+      SET status = 'approved'
+      WHERE id = ?
+        AND status = 'draft'
+        AND CHAR_LENGTH(TRIM(subject)) > 0
+        AND CHAR_LENGTH(TRIM(html_content)) > 0
+    `, [id]);
+
+    if (!result.affectedRows) {
+      return res.status(409).json({
+        error: "Chỉ duyệt được bản nháp đã có tiêu đề và nội dung."
+      });
+    }
+
+    res.json({ message: "Đã duyệt nội dung. Email chưa được gửi." });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Không duyệt được chiến dịch." });
+  }
+});
+// Chỉ n8n có đúng khóa mới được lấy công việc và cập nhật kết quả.
+function requireN8nKey(req, res, next) {
+  const expected = process.env.N8N_API_KEY;
+  const provided = req.get("x-api-key");
+
+  if (!expected || provided !== expected) {
+    return res.status(401).json({ error: "Khóa kết nối không đúng." });
+  }
+
+  next();
+}
+
+function escapeEmailHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+function getPublicBaseUrl() {
+  const configured = String(process.env.PUBLIC_BASE_URL || "").trim();
+
+  if (configured) {
+    return configured.replace(/\/+$/, "");
+  }
+
+  const port = Number(process.env.PORT) || 3001;
+  return `http://127.0.0.1:${port}`;
+}
+
+function validTrackingToken(token) {
+  return /^[a-f0-9]{64}$/.test(String(token || ""));
+}
+
+const trackingPixel = Buffer.from(
+  "R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==",
+  "base64"
+);
+
+function safeRedirectUrl(value, fallback) {
+  try {
+    const url = new URL(value);
+
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.toString();
+    }
+  } catch {}
+
+  return fallback;
+}
+// Hoàn tất chiến dịch khi không còn thư chờ hoặc đang xử lý.
+async function finishCampaign(
+  connection,
+  campaignId,
+  sendRound
+) {
+  await connection.execute(`
+    UPDATE campaigns
+
+    SET status = CASE
+
+      WHEN EXISTS (
+        SELECT 1
+        FROM campaign_recipients
+        WHERE campaign_id = ?
+          AND send_round = ?
+          AND status = 'failed'
+      )
+
+      THEN 'failed'
+
+      ELSE 'completed'
+
+    END
+
+    WHERE id = ?
+      AND status = 'sending'
+      AND send_round = ?
+
+      AND NOT EXISTS (
+        SELECT 1
+        FROM campaign_recipients
+        WHERE campaign_id = ?
+          AND send_round = ?
+          AND status IN ('pending', 'sending')
+      )
+  `, [
+    campaignId,
+    sendRound,
+
+    campaignId,
+    sendRound,
+
+    campaignId,
+    sendRound
+  ]);
+}
+
+// ======================================
+// ĐƯA CHIẾN DỊCH VÀO HÀNG CHỜ
+// HỖ TRỢ GỬI LẦN 1, LẦN 2, LẦN 3...
+// ======================================
+
+app.post("/api/campaigns/:id/queue", async (req, res) => {
+
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({
+      error: "Mã chiến dịch không hợp lệ."
+    });
+  }
+
+  let connection;
+
+  try {
+
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+
+    // Lấy chiến dịch
+    const [campaigns] = await connection.execute(
+      `
+      SELECT *
+      FROM campaigns
+      WHERE id = ?
+      FOR UPDATE
+      `,
+      [id]
+    );
+
+    const campaign = campaigns[0];
+
+
+    if (!campaign) {
+
+      await connection.rollback();
+
+      return res.status(404).json({
+        error: "Không tìm thấy chiến dịch."
+      });
+    }
+
+
+    // Không cho gửi chồng khi đang gửi
+    if (campaign.status === "sending") {
+
+      await connection.rollback();
+
+      return res.status(409).json({
+        error: "Chiến dịch đang gửi."
+      });
+    }
+
+
+    // Các trạng thái được phép gửi
+    const allowedStatuses = [
+      "approved",
+      "completed",
+      "failed",
+      "cancelled"
+    ];
+
+
+    if (!allowedStatuses.includes(campaign.status)) {
+
+      await connection.rollback();
+
+      return res.status(409).json({
+        error: "Hãy lưu và duyệt chiến dịch trước khi gửi."
+      });
+    }
+
+
+    // Tính lần gửi tiếp theo
+    const nextRound =
+      Number(campaign.send_round || 0) + 1;
+
+
+    // Lấy khách hàng thuộc nhóm
+    const [customers] = await connection.execute(`
+      SELECT
+        id,
+        email
+
+      FROM customers
+
+      WHERE subscribed = TRUE
+        AND interest_group = ?
+    `, [
+      campaign.target_group
+    ]);
+
+
+    if (!customers.length) {
+
+      await connection.rollback();
+
+      return res.status(400).json({
+        error: "Không có khách hàng thuộc nhóm này."
+      });
+    }
+
+
+    // Tạo danh sách người nhận cho lần gửi mới
+    for (const customer of customers) {
+
+      await connection.execute(`
+        INSERT INTO campaign_recipients
+        (
+          campaign_id,
+          customer_id,
+          recipient_email,
+          tracking_token,
+          status,
+          send_round
+        )
+
+        VALUES (?, ?, ?, ?, 'pending', ?)
+      `, [
+        id,
+        customer.id,
+        customer.email,
+        crypto.randomBytes(32).toString("hex"),
+        nextRound
+      ]);
+    }
+
+
+    // Cập nhật campaign
+    await connection.execute(`
+      UPDATE campaigns
+
+      SET
+        status = 'sending',
+        send_round = ?
+
+      WHERE id = ?
+    `, [
+      nextRound,
+      id
+    ]);
+
+
+    await connection.commit();
+
+
+    res.json({
+      message:
+        `Đã đưa ${customers.length} email vào hàng chờ - Lần ${nextRound}.`
+    });
+
+
+  } catch (error) {
+
+    if (connection) {
+      await connection.rollback();
+    }
+
+
+    console.error(
+      "Lỗi tạo hàng chờ:",
+      error.message
+    );
+
+
+    res.status(500).json({
+      error: "Không tạo được hàng chờ gửi."
+    });
+
+
+  } finally {
+
+    if (connection) {
+      connection.release();
+    }
+
+  }
+});
+// n8n lấy MỘT email mỗi lần, khóa hàng để tránh lấy trùng.
+app.post("/api/worker/next", requireN8nKey, async (req, res) => {
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [rows] = await connection.query(`
+  SELECT
+    r.id,
+    r.campaign_id,
+    r.send_round,
+    r.recipient_email,
+    r.tracking_token,
+    u.full_name,
+    u.subscribed,
+    c.subject,
+    c.html_content,
+    p.product_url
+  FROM campaign_recipients r
+  JOIN customers u ON u.id = r.customer_id
+  JOIN campaigns c ON c.id = r.campaign_id
+  JOIN products p ON p.id = c.product_id
+  WHERE r.status = 'pending'
+  AND c.status = 'sending'
+  AND r.send_round = c.send_round
+  ORDER BY r.id
+  LIMIT 1
+  FOR UPDATE SKIP LOCKED
+`);
+
+    if (!rows.length) {
+      await connection.commit();
+      return res.json({ has_job: false });
+    }
+
+    const job = rows[0];
+
+    // Kiểm tra lại đăng ký nhận thư ngay trước khi giao việc.
+    if (!Number(job.subscribed)) {
+      await connection.execute(`
+        UPDATE campaign_recipients
+        SET status = 'skipped'
+        WHERE id = ?
+      `, [job.id]);
+
+      await finishCampaign(
+  connection,
+  job.campaign_id,
+  job.send_round
+);
+      await connection.commit();
+      return res.json({ has_job: false });
+    }
+
+    await connection.execute(`
+      UPDATE campaign_recipients SET status = 'sending' WHERE id = ?
+    `, [job.id]);
+
+    await connection.commit();
+
+    const baseUrl = getPublicBaseUrl();
+
+const clickUrl =
+  `${baseUrl}/t/c/${job.tracking_token}`;
+
+const openUrl =
+  `${baseUrl}/t/o/${job.tracking_token}.gif`;
+
+const unsubscribeUrl =
+  `${baseUrl}/unsubscribe/${job.tracking_token}`;
+
+let html = job.html_content
+  .replaceAll(
+    "{{name}}",
+    escapeEmailHtml(job.full_name)
+  )
+  .replaceAll(
+    "{{product_url}}",
+    escapeEmailHtml(clickUrl)
+  );
+
+html += `
+  <hr style="border:0;border-top:1px solid #ddd;margin-top:30px">
+
+  <p style="font-size:12px;color:#64748b">
+    Bạn nhận email vì đã đăng ký nhận thông tin quảng cáo từ shop.
+    <a href="${escapeEmailHtml(unsubscribeUrl)}">
+      Hủy đăng ký nhận quảng cáo
+    </a>
+  </p>
+
+  <img
+    src="${escapeEmailHtml(openUrl)}"
+    width="1"
+    height="1"
+    alt=""
+    style="display:block;width:1px;height:1px;border:0"
+  >
+`;
+
+res.json({
+  has_job: true,
+  recipient_id: job.id,
+  email: job.recipient_email,
+  subject: job.subject.replaceAll(
+    "{{name}}",
+    job.full_name
+  ),
+  html
+});
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error(error.message);
+    res.status(500).json({ error: "Không lấy được công việc gửi." });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// n8n báo kết quả gửi về backend.
+app.post("/api/worker/result", requireN8nKey, async (req, res) => {
+  const id = Number(req.body.recipient_id);
+  const status = req.body.status;
+  const errorMessage = String(req.body.error || "").slice(0, 2000);
+
+  if (!Number.isInteger(id) || id < 1 ||
+      !["sent", "failed"].includes(status)) {
+    return res.status(400).json({ error: "Kết quả không hợp lệ." });
+  }
+
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [rows] = await connection.execute(
+  `
+  SELECT
+    campaign_id,
+    send_round
+
+  FROM campaign_recipients
+
+  WHERE id = ?
+  `,
+  [id]
+);
+
+    if (!rows.length) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Không tìm thấy người nhận." });
+    }
+
+    const campaignId = rows[0].campaign_id;
+    const sendRound = rows[0].send_round;
+
+    // Tuần tự hóa việc tính trạng thái tổng của cùng chiến dịch.
+    await connection.execute(
+      "SELECT id FROM campaigns WHERE id = ? FOR UPDATE", [campaignId]
+    );
+
+    const [result] = await connection.execute(`
+      UPDATE campaign_recipients
+      SET status = ?,
+          sent_at = CASE WHEN ? = 'sent' THEN NOW() ELSE NULL END,
+          error_message = ?
+      WHERE id = ? AND status = 'sending'
+    `, [
+      status, status,
+      status === "failed" ? errorMessage : null,
+      id
+    ]);
+
+    if (!result.affectedRows) {
+      const [existing] = await connection.execute(
+        "SELECT status FROM campaign_recipients WHERE id = ?", [id]
+      );
+
+      if (existing[0].status !== status) {
+        await connection.rollback();
+        return res.status(409).json({
+          error: "Trạng thái không phù hợp để cập nhật."
+        });
+      }
+    }
+
+    await finishCampaign(
+  connection,
+  campaignId,
+  sendRound
+);
+    await connection.commit();
+    res.json({ message: "Đã ghi nhận kết quả." });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error(error.message);
+    res.status(500).json({ error: "Không ghi được kết quả." });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+// Ghi nhận mở email
+app.get("/t/o/:token.gif", async (req, res) => {
+  const token = req.params.token;
+
+  try {
+    if (validTrackingToken(token)) {
+      await pool.execute(`
+        UPDATE campaign_recipients
+        SET first_opened_at = COALESCE(first_opened_at, NOW())
+        WHERE tracking_token = ?
+      `, [token]);
+    }
+  } catch (error) {
+    console.error("Lỗi tracking mở:", error.message);
+  }
+
+  res.set({
+    "Content-Type": "image/gif",
+    "Content-Length": trackingPixel.length,
+    "Cache-Control": "no-store, no-cache, must-revalidate, private",
+    "Pragma": "no-cache",
+    "Expires": "0"
+  });
+
+  res.end(trackingPixel);
+});
+
+
+// Ghi nhận click
+app.get("/t/c/:token", async (req, res) => {
+  const token = req.params.token;
+
+  if (!validTrackingToken(token)) {
+    return res.status(400).send("Liên kết không hợp lệ.");
+  }
+
+  try {
+    const [rows] = await pool.execute(`
+      SELECT r.id, p.product_url
+      FROM campaign_recipients r
+      JOIN campaigns c ON c.id = r.campaign_id
+      JOIN products p ON p.id = c.product_id
+      WHERE r.tracking_token = ?
+      LIMIT 1
+    `, [token]);
+
+    if (!rows.length) {
+      return res.status(404).send("Không tìm thấy liên kết.");
+    }
+
+    const recipient = rows[0];
+
+    await pool.execute(`
+      UPDATE campaign_recipients
+      SET first_clicked_at = COALESCE(first_clicked_at, NOW())
+      WHERE id = ?
+    `, [recipient.id]);
+
+   const destination =
+  `${getPublicBaseUrl()}/shop.html`;
+
+res.redirect(302, destination);
+  } catch (error) {
+    console.error("Lỗi tracking click:", error.message);
+    res.status(500).send("Không mở được liên kết.");
+  }
+});
+
+
+// Trang xác nhận hủy đăng ký
+app.get("/unsubscribe/:token", (req, res) => {
+  const token = req.params.token;
+
+  if (!validTrackingToken(token)) {
+    return res.status(400).send("Liên kết không hợp lệ.");
+  }
+
+  res.type("html").send(`
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+      <meta charset="UTF-8">
+      <title>Hủy đăng ký</title>
+    </head>
+    <body style="font-family:Arial;max-width:600px;margin:60px auto">
+      <h1>Hủy đăng ký nhận quảng cáo</h1>
+
+      <p>Bạn có chắc muốn ngừng nhận email quảng cáo?</p>
+
+      <form method="POST" action="/unsubscribe/${token}">
+        <button type="submit">
+          Xác nhận hủy đăng ký
+        </button>
+      </form>
+    </body>
+    </html>
+  `);
+});
+
+
+// Thực hiện hủy đăng ký
+app.post("/unsubscribe/:token", async (req, res) => {
+  const token = req.params.token;
+
+  if (!validTrackingToken(token)) {
+    return res.status(400).send("Liên kết không hợp lệ.");
+  }
+
+  try {
+    const [rows] = await pool.execute(`
+      SELECT customer_id
+      FROM campaign_recipients
+      WHERE tracking_token = ?
+      LIMIT 1
+    `, [token]);
+
+    if (!rows.length) {
+      return res.status(404).send("Không tìm thấy đăng ký.");
+    }
+
+    await pool.execute(`
+      UPDATE customers
+      SET subscribed = FALSE
+      WHERE id = ?
+    `, [rows[0].customer_id]);
+
+    res.send("Đã hủy đăng ký nhận quảng cáo.");
+  } catch (error) {
+    console.error("Lỗi hủy đăng ký:", error.message);
+    res.status(500).send("Không thể hủy đăng ký.");
+  }
+});
+// Web xem kết quả từng người nhận.
+app.get("/api/campaigns/:id/recipients", async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({ error: "Mã chiến dịch không hợp lệ." });
+  }
+
+  try {
+    const [rows] = await pool.execute(`
+  SELECT
+    r.id,
+    r.send_round,
+    u.full_name,
+    r.recipient_email,
+    r.status,
+    r.sent_at,
+    r.first_opened_at,
+    r.first_clicked_at,
+    r.error_message
+  FROM campaign_recipients r
+  JOIN customers u
+    ON u.id = r.customer_id
+  WHERE r.campaign_id = ?
+  ORDER BY
+    r.send_round DESC,
+    r.id DESC
+`, [id]);
+
+    res.json(rows);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Không tải được kết quả gửi." });
+  }
+});
+// ==========================
+// AI TẠO NỘI DUNG EMAIL
+// ==========================
+app.post("/api/ai/generate-email", async (req, res) => {
+  try {
+    const {
+      productName,
+      promotion,
+      tone,
+      extraRequest
+    } = req.body;
+
+    if (!productName || !productName.trim()) {
+      return res.status(400).json({
+        error: "Vui lòng nhập tên sản phẩm."
+      });
+    }
+
+    const prompt = `
+Bạn là trợ lý AI viết email marketing cho shop giày PhanhShoes.
+
+Hãy tạo email quảng cáo bằng tiếng Việt dựa trên:
+
+Tên sản phẩm: ${productName}
+Khuyến mãi: ${promotion || "Không có"}
+Phong cách: ${tone || "Trẻ trung"}
+Yêu cầu thêm: ${extraRequest || "Không có"}
+
+Yêu cầu:
+- Viết tiêu đề email hấp dẫn.
+- Nội dung HTML đẹp, chuyên nghiệp.
+- Dùng inline CSS để tương thích email.
+- Chiều rộng nội dung tối đa khoảng 600px.
+- Có tên thương hiệu PhanhShoes.
+- Có lời chào {{name}}.
+- Có tên sản phẩm và thông tin khuyến mãi.
+- Có nút "Xem sản phẩm".
+- Nút "Xem sản phẩm" phải có href="{{product_url}}".
+- Không dùng JavaScript.
+`;
+
+    const response = await openai.responses.create({
+      model: "gpt-6-astra",
+
+      input: prompt,
+
+      text: {
+        format: {
+          type: "json_schema",
+          name: "email_content",
+          strict: true,
+
+          schema: {
+            type: "object",
+
+            properties: {
+              subject: {
+                type: "string"
+              },
+
+              html: {
+                type: "string"
+              }
+            },
+
+            required: [
+              "subject",
+              "html"
+            ],
+
+            additionalProperties: false
+          }
+        }
+      }
+    });
+
+    const result = JSON.parse(response.output_text);
+
+    return res.json({
+      subject: result.subject,
+      html: result.html
+    });
+
+  } catch (error) {
+    console.error(
+      "Lỗi tạo email bằng AI:",
+      error
+    );
+
+    return res.status(500).json({
+      error:
+        error?.message ||
+        "Không thể tạo nội dung bằng AI."
+    });
+  }
+});
+async function startServer() {
+  try {
+    await pool.query("SELECT 1");
+    console.log("Kết nối MySQL thành công!");
+
+    const port = Number(process.env.PORT) || 3000;
+    app.listen(port, "127.0.0.1", () => {
+      console.log(`Backend: http://localhost:${port}`);
+    });
+  } catch (error) {
+    console.error("Không kết nối được MySQL:", error.message);
+    await pool.end();
+    process.exitCode = 1;
+  }
+}
+
+startServer();
