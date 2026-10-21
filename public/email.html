@@ -84,5 +84,106 @@
   </div></div>
   <div class="card"><div class="card-head"><h2>Bản xem trước</h2></div><div class="card-body"><iframe id="email-preview" title="Xem trước email" sandbox="" referrerpolicy="no-referrer"></iframe></div></div>
 </section>
-<section class="card" style="margin-top:20px"><div class="card-head"><h2>Gửi chiến dịch</h2></div><div class="card-body"><p style="color:var(--muted);margin-top:0">Chỉ chiến dịch đã duyệt mới được đưa vào hàng chờ. n8n sẽ lấy từng email để gửi.</p><div class="actions"><button id="queue-campaign" class="btn btn-primary" type="button">Đưa vào hàng chờ gửi</button><a class="btn btn-ghost" href="tracking.html">Mở trang theo dõi</a></div><p id="delivery-message" class="message"></p></div></section>
+<section class="card" style="margin-top:20px"><div class="card-head"><h2>Gửi chiến dịch</h2></div><div class="card-body"><p style="color:var(--muted);margin-top:0">Chỉ chiến dịch đã duyệt mới được đưa vào hàng chờ. n8n sẽ lấy từng email để gửi.</p><div class="actions">
+  <section class="card" style="margin-top:20px">
+
+  <div class="card-head">
+    <h2>Gửi chiến dịch</h2>
+  </div>
+
+  <div class="card-body">
+
+    <p style="color:var(--muted);margin-top:0">
+      Chỉ chiến dịch đã duyệt mới được gửi.
+      Bạn có thể gửi ngay hoặc đặt lịch gửi tự động.
+    </p>
+
+    <div style="
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+      margin-top:18px;
+    ">
+
+      <!-- GỬI NGAY -->
+      <div style="
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        padding:16px;
+      ">
+
+        <h3 style="margin-top:0">
+          ⚡ Gửi ngay
+        </h3>
+
+        <p style="color:#64748b;font-size:14px">
+          Đưa chiến dịch vào hàng chờ và gửi ngay bằng n8n.
+        </p>
+
+        <button
+          id="queue-campaign"
+          class="btn btn-primary"
+          type="button"
+        >
+          Gửi ngay
+        </button>
+
+      </div>
+
+
+      <!-- GỬI THEO LỊCH -->
+      <div style="
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        padding:16px;
+      ">
+
+        <h3 style="margin-top:0">
+          🕒 Gửi theo lịch
+        </h3>
+
+        <p style="color:#64748b;font-size:14px">
+          Chọn ngày giờ để n8n tự động gửi.
+        </p>
+
+        <input
+          id="schedule-datetime"
+          type="datetime-local"
+          style="
+            width:100%;
+            padding:10px;
+            margin-bottom:12px;
+          "
+        >
+
+        <button
+          id="schedule-campaign"
+          class="btn btn-success"
+          type="button"
+        >
+          Đặt lịch gửi
+        </button>
+
+      </div>
+
+    </div>
+
+    <p
+      id="delivery-message"
+      class="message"
+    ></p>
+
+    <div style="margin-top:14px">
+      <a
+        class="btn btn-ghost"
+        href="tracking.html"
+      >
+        Mở trang theo dõi
+      </a>
+    </div>
+
+  </div>
+
+</section>
+  <a class="btn btn-ghost" href="tracking.html">Mở trang theo dõi</a></div><p id="delivery-message" class="message"></p></div></section>
 </main></div><script src="/common.js"></script><script src="/email.js"></script></body></html>

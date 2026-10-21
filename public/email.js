@@ -11,11 +11,13 @@ const aiExtraRequest = document.getElementById("ai-extra-request");
 const aiMessage = document.getElementById("ai-message");
 const generateAiButton = document.getElementById("generate-ai-email");
 
+
+
 function showEmailPreview() {
   const content = htmlInput.value
     .replaceAll("{{name}}", "Khách hàng mẫu")
     .replaceAll("{{product_url}}", "#");
-  document.getElementById("email-preview").srcdoc = `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'"></head><body>${content}</body></html>`;
+  document.getElementById("email-preview").srcdoc = `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src https: data:; form-action 'none'; base-uri 'none'"></head><body>${content}</body></html>`;
 }
 
 function updateEditorInfo() {
@@ -221,6 +223,79 @@ document.getElementById("queue-campaign").addEventListener("click", async () => 
     selectedCampaign.status = "sending"; updateEditorInfo();
   } catch (error) { setMessage(message, error.message, "error"); }
 });
+// ==========================
+// GỬI THEO LỊCH
+// ==========================
+document
+  .getElementById("schedule-campaign")
+  .addEventListener("click", async () => {
+
+    const message =
+      document.getElementById("delivery-message");
+
+    const scheduledAt =
+      document.getElementById("schedule-datetime").value;
+
+    if (!selectedCampaign) {
+      return setMessage(
+        message,
+        "Chọn chiến dịch trước.",
+        "error"
+      );
+    }
+
+    if (!scheduledAt) {
+      return setMessage(
+        message,
+        "Chọn ngày giờ gửi.",
+        "error"
+      );
+    }
+
+    if (
+      !confirm(
+        `Đặt lịch gửi chiến dịch vào ${scheduledAt}?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+
+      const result = await api(
+        `/api/campaigns/${selectedCampaign.id}/schedule`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            scheduled_at: scheduledAt
+          })
+        }
+      );
+
+      selectedCampaign.status = "scheduled";
+
+      updateEditorInfo();
+
+      setMessage(
+        message,
+        result.message,
+        "success"
+      );
+
+    } catch (error) {
+
+      setMessage(
+        message,
+        error.message,
+        "error"
+      );
+    }
+  });
 
 refreshCampaignOptions();
 showEmailPreview();

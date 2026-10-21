@@ -1,9 +1,5 @@
 require("dotenv").config();
-const OpenAI = require("openai");
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
 const crypto = require("crypto");
 const path = require("path");
 
@@ -11,6 +7,7 @@ const express = require("express");
 const mysql = require("mysql2/promise");
 
 const app = express();
+
 app.use((req, res, next) => {
   console.log("Nhận yêu cầu:", req.method, req.url);
   next();
@@ -660,6 +657,38 @@ if (Number(processingRows[0].total) > 0) {
     }
   }
 });
+// ==========================
+// N8N LẤY CHIẾN DỊCH ĐẾN GIỜ
+// ==========================
+app.get("/api/campaigns/due", async (req, res) => {
+  try {
+    const [campaigns] = await pool.execute(
+      `
+      SELECT
+        id,
+        name,
+        scheduled_at
+      FROM campaigns
+      WHERE status = 'scheduled'
+        AND scheduled_at IS NOT NULL
+        AND scheduled_at <= NOW()
+      ORDER BY scheduled_at ASC
+      LIMIT 20
+      `
+    );
+
+    return res.json({
+      campaigns
+    });
+
+  } catch (error) {
+    console.error("Lỗi lấy campaign đến giờ:", error);
+
+    return res.status(500).json({
+      message: "Không lấy được chiến dịch đến giờ."
+    });
+  }
+});
 // Xem chi tiết chiến dịch và số khách đủ điều kiện
 app.get("/api/campaigns/:id", async (req, res) => {
   const id = Number(req.params.id);
@@ -935,11 +964,12 @@ app.post("/api/campaigns/:id/queue", async (req, res) => {
 
     // Các trạng thái được phép gửi
     const allowedStatuses = [
-      "approved",
-      "completed",
-      "failed",
-      "cancelled"
-    ];
+  "approved",
+  "scheduled",
+  "completed",
+  "failed",
+  "cancelled"
+];
 
 
     if (!allowedStatuses.includes(campaign.status)) {
@@ -1431,6 +1461,9 @@ app.get("/api/campaigns/:id/recipients", async (req, res) => {
 // ==========================
 // AI TẠO NỘI DUNG EMAIL
 // ==========================
+// ==========================
+// AI TẠO EMAIL BẰNG OLLAMA
+// ==========================
 app.post("/api/ai/generate-email", async (req, res) => {
   try {
     const {
@@ -1446,65 +1479,119 @@ app.post("/api/ai/generate-email", async (req, res) => {
       });
     }
 
-    const prompt = `
-Bạn là trợ lý AI viết email marketing cho shop giày PhanhShoes.
+  const prompt = `
+Bạn là chuyên gia thiết kế email marketing cho shop giày PhanhShoes.
 
-Hãy tạo email quảng cáo bằng tiếng Việt dựa trên:
+Hãy tạo một email quảng cáo bằng tiếng Việt.
 
-Tên sản phẩm: ${productName}
-Khuyến mãi: ${promotion || "Không có"}
-Phong cách: ${tone || "Trẻ trung"}
-Yêu cầu thêm: ${extraRequest || "Không có"}
+THÔNG TIN:
+- Sản phẩm: ${productName}
+- Khuyến mãi: ${promotion || "Không có"}
+- Phong cách: ${tone || "Trẻ trung"}
+- Yêu cầu của người dùng: ${extraRequest || "Không có"}
 
-Yêu cầu:
-- Viết tiêu đề email hấp dẫn.
-- Nội dung HTML đẹp, chuyên nghiệp.
-- Dùng inline CSS để tương thích email.
-- Chiều rộng nội dung tối đa khoảng 600px.
-- Có tên thương hiệu PhanhShoes.
-- Có lời chào {{name}}.
-- Có tên sản phẩm và thông tin khuyến mãi.
-- Có nút "Xem sản phẩm".
-- Nút "Xem sản phẩm" phải có href="{{product_url}}".
+CHỈ trả về JSON đúng cấu trúc:
+
+{
+  "subject": "Tiêu đề email",
+  "html": "HTML email hoàn chỉnh"
+}
+
+YÊU CẦU THIẾT KẾ HTML:
+
+- Email phải đẹp, hiện đại và chuyên nghiệp.
+- Thiết kế giống email marketing của một shop giày thật.
+- Chiều rộng tối đa 600px.
+- Căn giữa email.
+- Nền bên ngoài màu #f3f4f6.
+- Nội dung chính nền trắng.
+- Bo góc 16px.
+- Dùng inline CSS.
+- Font Arial, sans-serif.
 - Không dùng JavaScript.
+- Không dùng CSS bên ngoài.
+- Không dùng thẻ style.
+- Không dùng markdown.
+
+BỐ CỤC BẮT BUỘC:
+
+1. HEADER:
+   - Có chữ PHANHSHOES lớn.
+   - Header có màu nổi bật.
+   - Có slogan ngắn.
+
+2. HERO:
+   - Tiêu đề sản phẩm lớn.
+   - Một câu quảng cáo hấp dẫn.
+   - Có thể sử dụng emoji phù hợp như 👟 hoặc ✨.
+   - Không tự tạo URL ảnh nếu không được cung cấp.
+
+3. NỘI DUNG:
+   - Lời chào: Xin chào {{name}},
+   - Giới thiệu sản phẩm.
+   - Tối đa 2-3 đoạn ngắn.
+   - Nội dung dễ đọc.
+
+4. KHUYẾN MÃI:
+   ${
+     promotion
+       ? `- Hiển thị nổi bật chương trình: ${promotion}.
+          - Dùng một hộp màu hoặc badge để làm nổi bật ưu đãi.`
+       : "- Không cần tạo khuyến mãi giả."
+   }
+
+5. CTA:
+   - Có nút lớn "XEM SẢN PHẨM NGAY".
+   - href bắt buộc là "{{product_url}}".
+   - Nút có nền nổi bật.
+   - Chữ trắng.
+   - Bo góc.
+
+6. FOOTER:
+   - Có chữ PhanhShoes.
+   - Có lời cảm ơn.
+   - Thiết kế nhỏ gọn.
+
+MÀU SẮC:
+- Có thể phối 2-3 màu hài hòa.
+- Không sử dụng quá nhiều màu gây rối.
+- Ưu tiên màu đen, trắng và một màu nhấn nổi bật.
+- Nội dung phải có khoảng trắng hợp lý.
+
+QUAN TRỌNG:
+- Giữ nguyên {{name}}.
+- Giữ nguyên {{product_url}}.
+- Không tự đổi hai biến trên.
+- Không tạo link sản phẩm giả.
+- Không giải thích bên ngoài JSON.
 `;
 
-    const response = await openai.responses.create({
-      model: "gpt-6-astra",
-
-      input: prompt,
-
-      text: {
-        format: {
-          type: "json_schema",
-          name: "email_content",
-          strict: true,
-
-          schema: {
-            type: "object",
-
-            properties: {
-              subject: {
-                type: "string"
-              },
-
-              html: {
-                type: "string"
-              }
-            },
-
-            required: [
-              "subject",
-              "html"
-            ],
-
-            additionalProperties: false
-          }
-        }
+    const response = await fetch(
+      "http://127.0.0.1:11434/api/generate",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "qwen2.5:7b",
+          prompt,
+          stream: false,
+          format: "json"
+        })
       }
-    });
+    );
 
-    const result = JSON.parse(response.output_text);
+    if (!response.ok) {
+      throw new Error("Không kết nối được Ollama.");
+    }
+
+    const ollamaData = await response.json();
+    const result = JSON.parse(ollamaData.response);
+
+    if (!result.subject || !result.html) {
+      throw new Error("AI trả về nội dung không hợp lệ.");
+    }
 
     return res.json({
       subject: result.subject,
@@ -1512,18 +1599,89 @@ Yêu cầu:
     });
 
   } catch (error) {
-    console.error(
-      "Lỗi tạo email bằng AI:",
-      error
-    );
+    console.error("Lỗi AI Ollama:", error);
 
     return res.status(500).json({
-      error:
-        error?.message ||
-        "Không thể tạo nội dung bằng AI."
+      error: error.message || "Không tạo được email bằng AI."
     });
   }
 });
+// ==========================
+// ĐẶT LỊCH GỬI CHIẾN DỊCH
+// ==========================
+app.post("/api/campaigns/:id/schedule", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { scheduled_at } = req.body;
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({
+        message: "ID chiến dịch không hợp lệ."
+      });
+    }
+
+    if (!scheduled_at) {
+      return res.status(400).json({
+        message: "Vui lòng chọn ngày giờ gửi."
+      });
+    }
+
+    // datetime-local gửi dạng: 2026-10-20T20:30
+    const mysqlDateTime =
+      scheduled_at.length === 16
+        ? scheduled_at.replace("T", " ") + ":00"
+        : scheduled_at.replace("T", " ");
+
+    const [campaigns] = await pool.execute(
+      `
+      SELECT id, status
+      FROM campaigns
+      WHERE id = ?
+      `,
+      [id]
+    );
+
+    if (!campaigns.length) {
+      return res.status(404).json({
+        message: "Không tìm thấy chiến dịch."
+      });
+    }
+
+    const campaign = campaigns[0];
+
+    if (
+  campaign.status !== "approved" &&
+  campaign.status !== "scheduled"
+) {
+  return res.status(400).json({
+    message:
+      "Chỉ chiến dịch đã duyệt hoặc đến lịch mới được gửi."
+  });
+}
+
+    await pool.execute(
+      `
+      UPDATE campaigns
+      SET status = 'scheduled',
+          scheduled_at = ?
+      WHERE id = ?
+      `,
+      [mysqlDateTime, id]
+    );
+
+    return res.json({
+      message: `Đã đặt lịch gửi lúc ${mysqlDateTime}.`
+    });
+
+  } catch (error) {
+    console.error("Lỗi đặt lịch:", error);
+
+    return res.status(500).json({
+      message: "Không thể đặt lịch gửi."
+    });
+  }
+});
+
 async function startServer() {
   try {
     await pool.query("SELECT 1");
