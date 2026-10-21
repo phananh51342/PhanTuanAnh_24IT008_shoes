@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>PhanhShoes - Shop Giày</title>
+  <title>PhanhShoes - Sneaker Store</title>
 
   <style>
     * {
@@ -13,197 +13,368 @@
       padding: 0;
     }
 
-    body {
-      font-family: Arial, sans-serif;
-      background: #f7f7f7;
-      color: #222;
+    html {
+      scroll-behavior: smooth;
     }
 
-    /* HEADER */
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f6f7f9;
+      color: #171717;
+    }
+
+    a {
+      text-decoration: none;
+    }
+
+    /* ================= HEADER ================= */
+
     header {
-      background: #111;
-      color: white;
-      padding: 18px 8%;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+
+      height: 72px;
+
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
+
+      padding: 0 7%;
+
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+
+      border-bottom: 1px solid #eeeeee;
     }
 
     .logo {
       font-size: 28px;
-      font-weight: bold;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #111;
     }
 
     .logo span {
-      color: #ff5a5f;
+      color: #ff3d4f;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 30px;
     }
 
     nav a {
-      color: white;
-      text-decoration: none;
-      margin-left: 25px;
+      color: #333;
       font-size: 15px;
+      font-weight: 600;
+      transition: 0.25s;
     }
 
     nav a:hover {
-      color: #ff5a5f;
+      color: #ff3d4f;
     }
 
-    /* HERO */
+    .nav-shop {
+      padding: 11px 20px;
+      background: #111;
+      color: white !important;
+      border-radius: 999px;
+    }
+
+    .nav-shop:hover {
+      background: #ff3d4f;
+    }
+
+    /* ================= HERO ================= */
+
     .hero {
-      min-height: 500px;
+      min-height: 650px;
+
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 60px 8%;
+
+      padding: 70px 7%;
+
       background:
         linear-gradient(
           90deg,
-          rgba(0,0,0,0.9),
-          rgba(0,0,0,0.55)
+          rgba(0,0,0,0.88) 0%,
+          rgba(0,0,0,0.65) 45%,
+          rgba(0,0,0,0.20) 100%
         ),
-        url(
-          "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1600&q=80"
-        );
+        url("https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1800&q=90");
 
       background-size: cover;
       background-position: center;
+
       color: white;
     }
 
     .hero-content {
-      max-width: 600px;
+      max-width: 680px;
+    }
+
+    .hero-tag {
+      display: inline-block;
+
+      padding: 8px 14px;
+      margin-bottom: 20px;
+
+      background: rgba(255,255,255,0.12);
+
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px;
+
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
     }
 
     .hero h1 {
-      font-size: 58px;
-      margin-bottom: 20px;
+      font-size: 68px;
+      line-height: 1.05;
+      letter-spacing: -3px;
+
+      margin-bottom: 22px;
     }
 
     .hero h1 span {
-      color: #ff5a5f;
+      color: #ff4658;
     }
 
     .hero p {
-      font-size: 19px;
-      line-height: 1.7;
-      margin-bottom: 30px;
-      color: #eee;
+      max-width: 570px;
+
+      color: #e3e3e3;
+
+      font-size: 18px;
+      line-height: 1.8;
+
+      margin-bottom: 34px;
     }
 
-    .hero-btn {
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn-main {
       display: inline-block;
-      padding: 14px 28px;
-      background: #ff5a5f;
+
+      padding: 15px 28px;
+
+      background: #ff3d4f;
       color: white;
-      text-decoration: none;
-      border-radius: 8px;
+
+      border-radius: 10px;
+
       font-weight: bold;
+
       transition: 0.3s;
     }
 
-    .hero-btn:hover {
+    .btn-main:hover {
       transform: translateY(-3px);
-      background: #e9484e;
+      background: #e92c3e;
     }
 
-    /* SECTION */
-    section {
-      padding: 70px 8%;
+    .btn-second {
+      display: inline-block;
+
+      padding: 15px 28px;
+
+      color: white;
+
+      border: 1px solid rgba(255,255,255,0.55);
+      border-radius: 10px;
+
+      font-weight: bold;
+
+      transition: 0.3s;
     }
 
-    .section-title {
-      text-align: center;
-      margin-bottom: 45px;
-    }
-
-    .section-title h2 {
-      font-size: 36px;
-      margin-bottom: 10px;
-    }
-
-    .section-title p {
-      color: #777;
-      font-size: 16px;
-    }
-
-    /* INTRO */
-    .about {
+    .btn-second:hover {
       background: white;
+      color: #111;
     }
 
-    .about-content {
-      max-width: 900px;
-      margin: auto;
-      text-align: center;
-      line-height: 1.8;
-      color: #555;
-      font-size: 17px;
-    }
+    /* ================= FEATURES ================= */
 
     .features {
+      width: 86%;
+      max-width: 1200px;
+
+      margin: -55px auto 0;
+
+      position: relative;
+      z-index: 5;
+
+      background: white;
+
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 25px;
-      margin-top: 45px;
+
+      border-radius: 18px;
+
+      box-shadow: 0 18px 50px rgba(0,0,0,0.10);
+
+      overflow: hidden;
     }
 
     .feature {
-      background: #fafafa;
       padding: 30px;
-      border-radius: 14px;
       text-align: center;
-      border: 1px solid #eee;
+
+      border-right: 1px solid #eeeeee;
     }
 
-    .feature .icon {
-      font-size: 38px;
-      margin-bottom: 15px;
+    .feature:last-child {
+      border-right: none;
+    }
+
+    .feature-icon {
+      font-size: 34px;
+      margin-bottom: 12px;
     }
 
     .feature h3 {
-      margin-bottom: 10px;
+      font-size: 17px;
+      margin-bottom: 8px;
     }
 
     .feature p {
-      color: #777;
       font-size: 14px;
+      color: #777;
+      line-height: 1.6;
     }
 
-    /* PRODUCT */
-    .products {
-      background: #f5f5f5;
+    /* ================= COMMON ================= */
+
+    section.content-section {
+      padding: 90px 7%;
+    }
+
+    .section-heading {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 50px;
+    }
+
+    .section-heading span {
+      color: #ff3d4f;
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .section-heading h2 {
+      font-size: 40px;
+      margin: 10px 0 14px;
+      letter-spacing: -1px;
+    }
+
+    .section-heading p {
+      color: #777;
+      line-height: 1.7;
+    }
+
+    /* ================= PRODUCTS ================= */
+
+    #products {
+      background: #f6f7f9;
     }
 
     .product-grid {
       display: grid;
+
       grid-template-columns:
-        repeat(auto-fit, minmax(250px, 1fr));
+        repeat(auto-fit, minmax(260px, 1fr));
+
       gap: 28px;
+
+      max-width: 1250px;
+      margin: auto;
     }
 
     .product-card {
+      position: relative;
+
       background: white;
-      border-radius: 15px;
+
+      border-radius: 18px;
+
       overflow: hidden;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-      transition: 0.3s;
+
+      box-shadow:
+        0 5px 18px rgba(0,0,0,0.06);
+
+      transition:
+        transform 0.3s,
+        box-shadow 0.3s;
     }
 
     .product-card:hover {
       transform: translateY(-8px);
-      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+
+      box-shadow:
+        0 18px 40px rgba(0,0,0,0.12);
     }
 
-    .product-card img {
+    .product-image {
+      position: relative;
+
+      height: 255px;
+
+      background: #eeeeee;
+
+      overflow: hidden;
+    }
+
+    .product-image img {
       width: 100%;
-      height: 240px;
+      height: 100%;
+
       object-fit: cover;
-      display: block;
+
+      transition: transform 0.5s;
+    }
+
+    .product-card:hover img {
+      transform: scale(1.07);
+    }
+
+    .new-badge {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+
+      padding: 7px 12px;
+
+      background: #111;
+      color: white;
+
+      border-radius: 20px;
+
+      font-size: 11px;
+      font-weight: bold;
     }
 
     .product-info {
       padding: 22px;
+    }
+
+    .product-category {
+      color: #999;
+
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+
+      margin-bottom: 7px;
     }
 
     .product-info h3 {
@@ -212,343 +383,719 @@
     }
 
     .product-description {
-      color: #777;
-      line-height: 1.5;
-      min-height: 44px;
-      font-size: 14px;
-      margin-bottom: 14px;
-    }
+      min-height: 45px;
 
-    .price {
-      color: #e53935;
-      font-size: 21px;
-      font-weight: bold;
+      color: #777;
+
+      font-size: 14px;
+      line-height: 1.6;
+
       margin-bottom: 18px;
     }
 
-    .buy-btn {
-      display: block;
-      width: 100%;
-      border: none;
+    .product-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 10px;
+    }
+
+    .product-price {
+      color: #e92c3e;
+
+      font-size: 21px;
+      font-weight: 800;
+    }
+
+    .product-button {
+      padding: 11px 15px;
+
       background: #111;
       color: white;
-      padding: 13px;
-      border-radius: 7px;
-      cursor: pointer;
+
+      border-radius: 9px;
+
+      font-size: 13px;
       font-weight: bold;
-      text-decoration: none;
-      text-align: center;
-      transition: 0.3s;
+
+      transition: 0.25s;
     }
 
-    .buy-btn:hover {
-      background: #ff5a5f;
+    .product-button:hover {
+      background: #ff3d4f;
     }
 
-    /* EMPTY / LOADING */
-    .message {
-      text-align: center;
-      padding: 40px;
-      color: #777;
+    .loading-message {
       grid-column: 1 / -1;
-    }
 
-    /* CONTACT */
-    .contact {
-      background: #111;
-      color: white;
       text-align: center;
+
+      padding: 50px;
+
+      color: #777;
     }
 
-    .contact h2 {
-      font-size: 34px;
+    /* ================= ABOUT ================= */
+
+    .about {
+      background: white;
+    }
+
+    .about-wrap {
+      max-width: 1200px;
+      margin: auto;
+
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+
+      gap: 70px;
+      align-items: center;
+    }
+
+    .about-image img {
+      width: 100%;
+
+      border-radius: 22px;
+
+      box-shadow:
+        0 20px 50px rgba(0,0,0,0.12);
+    }
+
+    .about-text span {
+      color: #ff3d4f;
+
+      font-size: 13px;
+      font-weight: bold;
+
+      letter-spacing: 2px;
+
+      text-transform: uppercase;
+    }
+
+    .about-text h2 {
+      font-size: 42px;
+
+      margin: 12px 0 20px;
+
+      line-height: 1.15;
+    }
+
+    .about-text p {
+      color: #666;
+
+      font-size: 16px;
+      line-height: 1.9;
+
       margin-bottom: 15px;
     }
 
-    .contact p {
-      color: #ccc;
-      margin: 8px 0;
+    /* ================= CTA ================= */
+
+    .cta {
+      margin: 70px 7%;
+
+      padding: 65px 30px;
+
+      text-align: center;
+
+      border-radius: 24px;
+
+      color: white;
+
+      background:
+        linear-gradient(
+          135deg,
+          #111,
+          #292929
+        );
     }
 
-    /* FOOTER */
+    .cta h2 {
+      font-size: 40px;
+      margin-bottom: 15px;
+    }
+
+    .cta p {
+      color: #ccc;
+
+      max-width: 600px;
+
+      margin: 0 auto 28px;
+
+      line-height: 1.7;
+    }
+
+    /* ================= FOOTER ================= */
+
     footer {
-      background: #080808;
-      color: #999;
-      text-align: center;
-      padding: 22px;
+      background: #0d0d0d;
+      color: #ccc;
+
+      padding: 55px 7% 25px;
+    }
+
+    .footer-grid {
+      max-width: 1200px;
+      margin: auto;
+
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+
+      gap: 50px;
+    }
+
+    .footer-logo {
+      color: white;
+
+      font-size: 26px;
+      font-weight: bold;
+
+      margin-bottom: 15px;
+    }
+
+    .footer-logo span {
+      color: #ff3d4f;
+    }
+
+    footer p {
+      color: #888;
+      line-height: 1.7;
+
       font-size: 14px;
     }
 
-    @media (max-width: 768px) {
+    footer h4 {
+      color: white;
 
-      nav {
-        display: none;
-      }
+      margin-bottom: 15px;
+    }
 
-      .hero {
-        min-height: 420px;
-      }
+    footer a {
+      display: block;
+
+      color: #888;
+
+      font-size: 14px;
+
+      margin-bottom: 10px;
+
+      transition: 0.2s;
+    }
+
+    footer a:hover {
+      color: #ff3d4f;
+    }
+
+    .copyright {
+      max-width: 1200px;
+
+      margin: 40px auto 0;
+
+      padding-top: 20px;
+
+      border-top: 1px solid #222;
+
+      text-align: center;
+
+      color: #666;
+
+      font-size: 13px;
+    }
+
+    /* ================= RESPONSIVE ================= */
+
+    @media (max-width: 900px) {
 
       .hero h1 {
-        font-size: 42px;
+        font-size: 50px;
       }
 
       .features {
         grid-template-columns: 1fr;
       }
+
+      .feature {
+        border-right: none;
+        border-bottom: 1px solid #eee;
+      }
+
+      .about-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
     }
+
+    @media (max-width: 650px) {
+
+      header {
+        padding: 0 5%;
+      }
+
+      nav a:not(.nav-shop) {
+        display: none;
+      }
+
+      .hero {
+        min-height: 560px;
+
+        padding: 60px 6%;
+      }
+
+      .hero h1 {
+        font-size: 42px;
+        letter-spacing: -2px;
+      }
+
+      .features {
+        width: 90%;
+      }
+
+      section.content-section {
+        padding: 70px 6%;
+      }
+
+      .section-heading h2 {
+        font-size: 32px;
+      }
+
+      .about-text h2 {
+        font-size: 34px;
+      }
+
+      .cta {
+        margin: 50px 5%;
+      }
+
+      .cta h2 {
+        font-size: 30px;
+      }
+    }
+
   </style>
 </head>
 
 <body>
 
-  <!-- HEADER -->
-  <header>
 
-    <div class="logo">
-      Phanh<span>Shoes</span>
+<!-- ================= HEADER ================= -->
+
+<header>
+
+  <div class="logo">
+    Phanh<span>Shoes</span>
+  </div>
+
+  <nav>
+    <a href="#home">Trang chủ</a>
+    <a href="#products">Sản phẩm</a>
+    <a href="#about">Giới thiệu</a>
+    <a href="#contact">Liên hệ</a>
+
+    <a
+      class="nav-shop"
+      href="#products"
+    >
+      Mua ngay
+    </a>
+  </nav>
+
+</header>
+
+
+<!-- ================= HERO ================= -->
+
+<section
+  class="hero"
+  id="home"
+>
+
+  <div class="hero-content">
+
+    <div class="hero-tag">
+      PHANHSHOES • NEW COLLECTION
     </div>
 
-    <nav>
-      <a href="#home">Trang chủ</a>
-      <a href="#about">Giới thiệu</a>
-      <a href="#products">Sản phẩm</a>
-      <a href="#contact">Liên hệ</a>
-    </nav>
+    <h1>
+      Bước đi khác biệt
+      cùng <span>PhanhShoes.</span>
+    </h1>
 
-  </header>
+    <p>
+      Khám phá những mẫu sneaker nổi bật,
+      phong cách trẻ trung và hiện đại.
+      PhanhShoes giúp bạn tự tin trong từng bước đi.
+    </p>
 
+    <div class="hero-actions">
 
-  <!-- HERO -->
-  <section class="hero" id="home">
+      <a
+        href="#products"
+        class="btn-main"
+      >
+        Khám phá sản phẩm →
+      </a>
 
-    <div class="hero-content">
-
-      <h1>
-        Phong cách bắt đầu từ
-        <span>PhanhShoes</span>
-      </h1>
-
-      <p>
-        Khám phá những mẫu giày nổi bật tại PhanhShoes.
-        Nhiều phong cách trẻ trung, năng động và phù hợp
-        cho mọi hoạt động hằng ngày.
-      </p>
-
-      <a href="#products" class="hero-btn">
-        Khám phá sản phẩm
+      <a
+        href="#about"
+        class="btn-second"
+      >
+        Về PhanhShoes
       </a>
 
     </div>
 
-  </section>
+  </div>
+
+</section>
 
 
-  <!-- ABOUT -->
-  <section class="about" id="about">
+<!-- ================= FEATURES ================= -->
 
-    <div class="section-title">
-      <h2>Về PhanhShoes</h2>
-      <p>Đồng hành cùng phong cách của bạn</p>
+<div class="features">
+
+  <div class="feature">
+
+    <div class="feature-icon">
+      👟
     </div>
 
-    <div class="about-content">
-
-      <p>
-        PhanhShoes là cửa hàng chuyên cung cấp các mẫu giày
-        trẻ trung và hiện đại. Chúng tôi mong muốn mang đến
-        cho khách hàng những sản phẩm phù hợp với nhiều phong
-        cách khác nhau cùng trải nghiệm mua sắm thuận tiện.
-      </p>
-
-      <div class="features">
-
-        <div class="feature">
-          <div class="icon">👟</div>
-          <h3>Nhiều mẫu giày</h3>
-          <p>
-            Thường xuyên cập nhật các mẫu giày mới
-            và phong cách đa dạng.
-          </p>
-        </div>
-
-        <div class="feature">
-          <div class="icon">✨</div>
-          <h3>Phong cách hiện đại</h3>
-          <p>
-            Những thiết kế phù hợp với phong cách
-            trẻ trung và năng động.
-          </p>
-        </div>
-
-        <div class="feature">
-          <div class="icon">❤️</div>
-          <h3>Khách hàng là ưu tiên</h3>
-          <p>
-            PhanhShoes luôn mong muốn mang lại trải nghiệm
-            tốt cho khách hàng.
-          </p>
-        </div>
-
-      </div>
-
-    </div>
-
-  </section>
-
-
-  <!-- PRODUCTS -->
-  <section class="products" id="products">
-
-    <div class="section-title">
-
-      <h2>Sản phẩm tại PhanhShoes</h2>
-
-      <p>
-        Những mẫu giày hiện đang có tại cửa hàng
-      </p>
-
-    </div>
-
-    <div
-      class="product-grid"
-      id="productGrid"
-    >
-
-      <div class="message">
-        Đang tải sản phẩm...
-      </div>
-
-    </div>
-
-  </section>
-
-
-  <!-- CONTACT -->
-  <section class="contact" id="contact">
-
-    <h2>PhanhShoes</h2>
+    <h3>Mẫu mã đa dạng</h3>
 
     <p>
-      👟 Shop giày dành cho phong cách của bạn
+      Nhiều lựa chọn phù hợp với
+      phong cách và sở thích của bạn.
     </p>
+
+  </div>
+
+
+  <div class="feature">
+
+    <div class="feature-icon">
+      ✨
+    </div>
+
+    <h3>Phong cách hiện đại</h3>
 
     <p>
-      Cảm ơn bạn đã quan tâm đến sản phẩm của PhanhShoes.
+      Những thiết kế trẻ trung,
+      năng động và dễ phối đồ.
     </p>
 
-  </section>
+  </div>
 
 
-  <footer>
-    © 2026 PhanhShoes. All rights reserved.
-  </footer>
+  <div class="feature">
+
+    <div class="feature-icon">
+      ❤️
+    </div>
+
+    <h3>Phục vụ tận tâm</h3>
+
+    <p>
+      PhanhShoes luôn đặt trải nghiệm
+      của khách hàng lên hàng đầu.
+    </p>
+
+  </div>
+
+</div>
 
 
-  <script>
+<!-- ================= PRODUCTS ================= -->
 
-    const defaultImages = [
+<section
+  class="content-section"
+  id="products"
+>
 
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80",
+  <div class="section-heading">
 
-      "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=80",
+    <span>Our collection</span>
 
-      "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=700&q=80",
+    <h2>
+      Sản phẩm nổi bật
+    </h2>
 
-      "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=700&q=80",
+    <p>
+      Khám phá những mẫu giày hiện đang có tại
+      PhanhShoes và tìm phong cách phù hợp với bạn.
+    </p>
 
-      "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=700&q=80",
-
-      "https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=700&q=80"
-
-    ];
+  </div>
 
 
-    function escapeHtml(value) {
+  <div
+    id="productGrid"
+    class="product-grid"
+  >
 
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+    <div class="loading-message">
+      Đang tải sản phẩm...
+    </div>
 
+  </div>
+
+</section>
+
+
+<!-- ================= ABOUT ================= -->
+
+<section
+  class="content-section about"
+  id="about"
+>
+
+  <div class="about-wrap">
+
+    <div class="about-image">
+
+      <img
+        src="https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=85"
+        alt="PhanhShoes"
+      >
+
+    </div>
+
+
+    <div class="about-text">
+
+      <span>
+        About PhanhShoes
+      </span>
+
+      <h2>
+        Không chỉ là giày,
+        đó là phong cách của bạn.
+      </h2>
+
+      <p>
+        PhanhShoes hướng đến những khách hàng yêu thích
+        sneaker và phong cách trẻ trung, hiện đại.
+      </p>
+
+      <p>
+        Chúng tôi mong muốn mang đến trải nghiệm mua sắm
+        đơn giản, tiện lợi và những sản phẩm phù hợp với
+        từng cá tính riêng.
+      </p>
+
+      <a
+        href="#products"
+        class="btn-main"
+        style="margin-top:10px"
+      >
+        Xem sản phẩm
+      </a>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ================= CTA ================= -->
+
+<section
+  class="cta"
+  id="contact"
+>
+
+  <h2>
+    Ready for your next step?
+  </h2>
+
+  <p>
+    Khám phá bộ sưu tập tại PhanhShoes
+    và lựa chọn đôi giày dành riêng cho bạn.
+  </p>
+
+  <a
+    href="#products"
+    class="btn-main"
+  >
+    Khám phá ngay
+  </a>
+
+</section>
+
+
+<!-- ================= FOOTER ================= -->
+
+<footer>
+
+  <div class="footer-grid">
+
+    <div>
+
+      <div class="footer-logo">
+        Phanh<span>Shoes</span>
+      </div>
+
+      <p>
+        Sneaker store dành cho những
+        phong cách trẻ trung và khác biệt.
+      </p>
+
+    </div>
+
+
+    <div>
+
+      <h4>PhanhShoes</h4>
+
+      <a href="#home">Trang chủ</a>
+      <a href="#products">Sản phẩm</a>
+      <a href="#about">Giới thiệu</a>
+
+    </div>
+
+
+    <div>
+
+      <h4>Hỗ trợ</h4>
+
+      <a href="#contact">Liên hệ</a>
+      <a href="#products">Mua hàng</a>
+
+    </div>
+
+  </div>
+
+
+  <div class="copyright">
+    © 2026 PhanhShoes — All rights reserved.
+  </div>
+
+</footer>
+
+
+<script>
+
+  /* ================= ẢNH GIÀY MẶC ĐỊNH ================= */
+
+  const defaultImages = [
+
+    "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=85",
+
+    "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=800&q=85",
+
+    "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=800&q=85",
+
+    "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=800&q=85",
+
+    "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=800&q=85",
+
+    "https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=800&q=85"
+
+  ];
+
+
+  /* ================= ESCAPE HTML ================= */
+
+  function escapeHtml(value) {
+
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+
+  /* ================= FORMAT GIÁ ================= */
+
+  function formatPrice(value) {
+
+    const number =
+      Number(value);
+
+    if (!Number.isFinite(number)) {
+      return "Liên hệ";
     }
 
+    return number.toLocaleString("vi-VN") + " ₫";
+  }
 
-    function formatPrice(value) {
 
-      const price = Number(value);
+  /* ================= LOAD PRODUCT ================= */
 
-      if (!Number.isFinite(price)) {
-        return "Liên hệ";
+  async function loadProducts() {
+
+    const grid =
+      document.getElementById("productGrid");
+
+
+    try {
+
+      const response =
+        await fetch("/api/products");
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          "Không thể tải sản phẩm."
+        );
       }
 
-      return price.toLocaleString("vi-VN") + " ₫";
 
-    }
-
-
-    async function loadProducts() {
-
-      const grid =
-        document.getElementById("productGrid");
-
-      try {
-
-        const response =
-          await fetch("/api/products");
-
-        if (!response.ok) {
-          throw new Error(
-            "Không tải được sản phẩm."
-          );
-        }
-
-        const data =
-          await response.json();
-
-        const products =
-          Array.isArray(data)
-            ? data
-            : data.products || [];
+      const data =
+        await response.json();
 
 
-        if (!products.length) {
-
-          grid.innerHTML = `
-            <div class="message">
-              Hiện tại PhanhShoes chưa có sản phẩm.
-            </div>
-          `;
-
-          return;
-        }
+      const products =
+        Array.isArray(data)
+          ? data
+          : data.products || [];
 
 
-        grid.innerHTML = "";
+      if (!products.length) {
+
+        grid.innerHTML = `
+          <div class="loading-message">
+            PhanhShoes hiện chưa có sản phẩm.
+          </div>
+        `;
+
+        return;
+      }
 
 
-        products.forEach((product, index) => {
+      grid.innerHTML = "";
+
+
+      products.forEach(
+        (product, index) => {
 
           const name =
             product.name ||
             product.product_name ||
-            product.ten_san_pham ||
             "Sản phẩm PhanhShoes";
 
 
           const description =
             product.description ||
-            product.mo_ta ||
             product.category ||
             "Mẫu giày nổi bật tại PhanhShoes.";
 
 
+          const category =
+            product.category ||
+            "Sneaker";
+
+
           const price =
-            product.price ||
-            product.gia ||
-            product.sale_price;
+            product.sale_price ??
+            product.price ??
+            0;
 
 
           const image =
@@ -562,23 +1109,39 @@
           const card =
             document.createElement("div");
 
+
           card.className =
             "product-card";
 
 
           card.innerHTML = `
 
-            <img
-              src="${escapeHtml(image)}"
-              alt="${escapeHtml(name)}"
-              onerror="
-                this.src='${defaultImages[
-                  index % defaultImages.length
-                ]}'
-              "
-            >
+            <div class="product-image">
+
+              <img
+                src="${escapeHtml(image)}"
+                alt="${escapeHtml(name)}"
+                loading="lazy"
+                onerror="
+                  this.src=
+                  '${defaultImages[
+                    index % defaultImages.length
+                  ]}'
+                "
+              >
+
+              <div class="new-badge">
+                PHANHSHOES
+              </div>
+
+            </div>
+
 
             <div class="product-info">
+
+              <div class="product-category">
+                ${escapeHtml(category)}
+              </div>
 
               <h3>
                 ${escapeHtml(name)}
@@ -588,45 +1151,52 @@
                 ${escapeHtml(description)}
               </div>
 
-              <div class="price">
-                ${formatPrice(price)}
+
+              <div class="product-bottom">
+
+                <div class="product-price">
+                  ${formatPrice(price)}
+                </div>
+
+                <a
+                  href="#contact"
+                  class="product-button"
+                >
+                  Xem ngay
+                </a>
+
               </div>
 
-              <a
-                class="buy-btn"
-                href="#contact"
-              >
-                Liên hệ đặt hàng
-              </a>
-
             </div>
-
           `;
 
 
           grid.appendChild(card);
+        }
+      );
 
-        });
+
+    } catch (error) {
+
+      console.error(
+        "Lỗi tải sản phẩm:",
+        error
+      );
 
 
-      } catch (error) {
-
-        console.error(error);
-
-        grid.innerHTML = `
-          <div class="message">
-            Không thể tải danh sách sản phẩm.
-          </div>
-        `;
-
-      }
-
+      grid.innerHTML = `
+        <div class="loading-message">
+          Không thể tải danh sách sản phẩm.
+        </div>
+      `;
     }
+  }
 
 
-    loadProducts();
+  loadProducts();
 
-  </script>
+</script>
+
 
 </body>
 </html>
