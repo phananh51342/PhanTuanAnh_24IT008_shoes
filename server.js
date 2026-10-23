@@ -6,6 +6,9 @@ const path = require("path");
 const express = require("express");
 const mysql = require("mysql2/promise");
 
+const session = require("express-session");
+const bcrypt = require("bcryptjs");
+
 const app = express();
 
 app.use((req, res, next) => {
@@ -13,6 +16,19 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json());
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: false,
+      maxAge: 1000 * 60 * 60 * 8
+    }
+  })
+);
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -23,7 +39,110 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 5
 });
+function requireAdmin(req, res, next) {
+  if (req.session && req.session.admin) {
+    return next();
+  }
 
+  return res.status(401).json({
+    error: "Vui lòng đăng nhập Admin."
+  });
+}
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (
+      typeof username !== "string" ||
+      typeof password !== "string"
+    ) {
+      return res.status(400).json({
+        error: "Nhập tài khoản và mật khẩu."
+      });
+    }
+
+    const usernameOk =
+      username === process.env.ADMIN_USERNAME;
+
+    const passwordOk =
+      await bcrypt.compare(
+        password,
+        process.env.ADMIN_PASSWORD_HASH || ""
+      );
+
+    if (!usernameOk || !passwordOk) {
+      return res.status(401).json({
+        error: "Sai tài khoản hoặc mật khẩu."
+      });
+    }
+
+    req.session.admin = {
+      username
+    };
+
+    return res.json({
+      message: "Đăng nhập thành công."
+    });
+
+  } catch (error) {
+    console.error("Lỗi đăng nhập:", error);
+
+    return res.status(500).json({
+      error: "Không thể đăng nhập."
+    });
+  }
+});
+app.get("/api/auth/me", (req, res) => {
+  if (!req.session.admin) {
+    return res.status(401).json({
+      loggedIn: false
+    });
+  }
+
+  return res.json({
+    loggedIn: true,
+    username: req.session.admin.username
+  });
+});
+
+
+app.post("/api/auth/logout", (req, res) => {
+  req.session.destroy((error) => {
+    if (error) {
+      return res.status(500).json({
+        error: "Không đăng xuất được."
+      });
+    }
+
+    res.clearCookie("connect.sid");
+
+    return res.json({
+      message: "Đã đăng xuất."
+    });
+  });
+});
+const adminPages = new Set([
+  "/",
+  "/index.html",
+  "/campaigns.html",
+  "/email.html",
+  "/tracking.html",
+  "/products.html",
+  "/customers.html"
+]);
+
+
+app.use((req, res, next) => {
+
+  if (
+    adminPages.has(req.path) &&
+    !req.session.admin
+  ) {
+    return res.redirect("/login.html");
+  }
+
+  next();
+});
 app.use(express.static(path.join(__dirname, "public")));
 
 // Lấy danh sách khách hàng
