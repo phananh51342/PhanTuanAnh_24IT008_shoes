@@ -1,56 +1,443 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>Shop Giày — Tổng quan</title>
+
   <link rel="stylesheet" href="/style.css">
 </head>
+
 <body>
+
 <div class="app-shell">
+
+  <!-- SIDEBAR -->
   <aside class="sidebar">
-    <div class="brand"><div class="brand-mark">👟</div><div><strong>Shop Giày</strong><span>Email Campaign</span></div></div>
+
+    <div class="brand">
+
+      <div class="brand-mark">
+        👟
+      </div>
+
+      <div>
+        <strong>Shop Giày</strong>
+        <span>Email Campaign</span>
+      </div>
+
+    </div>
+
+
     <nav class="nav">
-      <a href="index.html"><span class="icon">⌂</span>Tổng quan</a>
-      <a href="campaigns.html"><span class="icon">◫</span>Chiến dịch</a>
-      <a href="email.html"><span class="icon">✉</span>Soạn & gửi</a>
-      <a href="tracking.html"><span class="icon">◎</span>Theo dõi</a>
-      <a href="products.html"><span class="icon">◆</span>Sản phẩm</a>
-      <a href="customers.html"><span class="icon">♙</span>Khách hàng</a>
+
+      <a href="index.html">
+        <span class="icon">⌂</span>
+        Tổng quan
+      </a>
+
+      <a href="campaigns.html">
+        <span class="icon">◫</span>
+        Chiến dịch
+      </a>
+
+      <a href="email.html">
+        <span class="icon">✉</span>
+        Soạn & gửi
+      </a>
+
+      <a href="tracking.html">
+        <span class="icon">◎</span>
+        Theo dõi
+      </a>
+
+      <a href="products.html">
+        <span class="icon">◆</span>
+        Sản phẩm
+      </a>
+
+      <a href="customers.html">
+        <span class="icon">♙</span>
+        Khách hàng
+      </a>
+
     </nav>
-    <div class="sidebar-note">Giao diện quản trị được tách thành từng trang để dễ quản lý và hạn chế nhầm thao tác.</div>
+
+
+    <div class="sidebar-note">
+      Giao diện quản trị được tách thành từng trang
+      để dễ quản lý và hạn chế nhầm thao tác.
+    </div>
+
   </aside>
 
+
+  <!-- MAIN -->
   <main class="main">
+
+
+    <!-- HEADER -->
     <header class="page-head">
-      <div><h1>Tổng quan</h1><p>Theo dõi nhanh dữ liệu shop và tình trạng các chiến dịch email.</p></div>
-      <a class="btn btn-primary" href="campaigns.html">+ Tạo chiến dịch</a>
+
+      <div>
+
+        <h1>
+          Tổng quan
+        </h1>
+
+        <p>
+          Theo dõi nhanh dữ liệu shop
+          và tình trạng các chiến dịch email.
+        </p>
+
+      </div>
+
+
+      <a
+        class="btn btn-primary"
+        href="campaigns.html"
+      >
+        + Tạo chiến dịch
+      </a>
+
     </header>
 
+
+
+    <!-- =========================
+         THỐNG KÊ CŨ
+    ========================== -->
+
     <section class="grid grid-4">
-      <div class="card stat-card"><div class="stat-label">Sản phẩm</div><div class="stat-value" id="stat-products">—</div><div class="stat-foot">Mẫu giày trong hệ thống</div></div>
-      <div class="card stat-card"><div class="stat-label">Khách hàng</div><div class="stat-value" id="stat-customers">—</div><div class="stat-foot">Tổng khách đã lưu</div></div>
-      <div class="card stat-card"><div class="stat-label">Chiến dịch</div><div class="stat-value" id="stat-campaigns">—</div><div class="stat-foot">Tổng chiến dịch đã tạo</div></div>
-      <div class="card stat-card"><div class="stat-label">Đang gửi</div><div class="stat-value" id="stat-sending">—</div><div class="stat-foot">Chiến dịch đang xử lý</div></div>
+
+
+      <div class="card stat-card">
+
+        <div class="stat-label">
+          Sản phẩm
+        </div>
+
+        <div
+          class="stat-value"
+          id="stat-products"
+        >
+          —
+        </div>
+
+        <div class="stat-foot">
+          Mẫu giày trong hệ thống
+        </div>
+
+      </div>
+
+
+
+      <div class="card stat-card">
+
+        <div class="stat-label">
+          Khách hàng
+        </div>
+
+        <div
+          class="stat-value"
+          id="stat-customers"
+        >
+          —
+        </div>
+
+        <div class="stat-foot">
+          Tổng khách đã lưu
+        </div>
+
+      </div>
+
+
+
+      <div class="card stat-card">
+
+        <div class="stat-label">
+          Chiến dịch
+        </div>
+
+        <div
+          class="stat-value"
+          id="stat-campaigns"
+        >
+          —
+        </div>
+
+        <div class="stat-foot">
+          Tổng chiến dịch đã tạo
+        </div>
+
+      </div>
+
+
+
+      <div class="card stat-card">
+
+        <div class="stat-label">
+          Đang gửi
+        </div>
+
+        <div
+          class="stat-value"
+          id="stat-sending"
+        >
+          —
+        </div>
+
+        <div class="stat-foot">
+          Chiến dịch đang xử lý
+        </div>
+
+      </div>
+
     </section>
 
-    <section class="grid grid-2" style="margin-top:20px">
+
+
+    <!-- =========================
+         CHIẾN DỊCH GẦN ĐÂY
+    ========================== -->
+
+    <section
+      class="grid grid-2"
+      style="margin-top:20px"
+    >
+
+
       <div class="card">
-        <div class="card-head"><h2>Chiến dịch gần đây</h2><a href="campaigns.html">Xem tất cả</a></div>
-        <div class="card-body"><div class="table-wrap"><table><thead><tr><th>Mã</th><th>Tên</th><th>Trạng thái</th></tr></thead><tbody id="recent-campaigns"></tbody></table></div><p id="dashboard-message" class="message"></p></div>
-      </div>
-      <div class="card">
-        <div class="card-head"><h2>Truy cập nhanh</h2></div>
-        <div class="card-body quick-links">
-          <a class="quick-link" href="email.html"><strong>✉ Soạn email</strong><span>Tạo nội dung, xem trước, duyệt và gửi.</span></a>
-          <a class="quick-link" href="tracking.html"><strong>◎ Theo dõi</strong><span>Xem mở mail, nhấp link và lỗi gửi.</span></a>
-          <a class="quick-link" href="customers.html"><strong>♙ Khách hàng</strong><span>Thêm và chỉnh sửa người nhận.</span></a>
+
+        <div class="card-head">
+
+          <h2>
+            Chiến dịch gần đây
+          </h2>
+
+          <a href="campaigns.html">
+            Xem tất cả
+          </a>
+
         </div>
+
+
+        <div class="card-body">
+
+          <div class="table-wrap">
+
+            <table>
+
+              <thead>
+
+                <tr>
+                  <th>Mã</th>
+                  <th>Tên</th>
+                  <th>Trạng thái</th>
+                </tr>
+
+              </thead>
+
+
+              <tbody id="recent-campaigns">
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+
+          <p
+            id="dashboard-message"
+            class="message"
+          ></p>
+
+        </div>
+
       </div>
+
+
+
+      <!-- TRUY CẬP NHANH -->
+
+      <div class="card">
+
+        <div class="card-head">
+
+          <h2>
+            Truy cập nhanh
+          </h2>
+
+        </div>
+
+
+        <div class="card-body quick-links">
+
+
+          <a
+            class="quick-link"
+            href="email.html"
+          >
+
+            <strong>
+              ✉ Soạn email
+            </strong>
+
+            <span>
+              Tạo nội dung, xem trước,
+              duyệt và gửi.
+            </span>
+
+          </a>
+
+
+
+          <a
+            class="quick-link"
+            href="tracking.html"
+          >
+
+            <strong>
+              ◎ Theo dõi
+            </strong>
+
+            <span>
+              Xem mở mail, nhấp link
+              và lỗi gửi.
+            </span>
+
+          </a>
+
+
+
+          <a
+            class="quick-link"
+            href="customers.html"
+          >
+
+            <strong>
+              ♙ Khách hàng
+            </strong>
+
+            <span>
+              Thêm và chỉnh sửa
+              người nhận.
+            </span>
+
+          </a>
+
+
+        </div>
+
+      </div>
+
     </section>
+
+
+
+    <!-- =========================
+         BIỂU ĐỒ
+    ========================== -->
+
+    <section
+      class="grid grid-2"
+      style="margin-top:20px"
+    >
+
+
+      <!-- TRẠNG THÁI CHIẾN DỊCH -->
+
+      <div class="card">
+
+        <div class="card-head">
+
+          <div>
+
+            <h2>
+              Trạng thái chiến dịch
+            </h2>
+
+            <p
+              style="
+                margin:5px 0 0;
+                color:var(--muted);
+              "
+            >
+              Tổng quan các chiến dịch hiện tại
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="card-body chart-box">
+
+          <canvas
+            id="campaign-status-chart"
+          ></canvas>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- NHÓM KHÁCH HÀNG -->
+
+      <div class="card">
+
+        <div class="card-head">
+
+          <div>
+
+            <h2>
+              Nhóm khách hàng
+            </h2>
+
+            <p
+              style="
+                margin:5px 0 0;
+                color:var(--muted);
+              "
+            >
+              Số khách hàng theo nhóm quan tâm
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="card-body chart-box">
+
+          <canvas
+            id="customer-group-chart"
+          ></canvas>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
   </main>
+
 </div>
+
+
+<!-- SCRIPT -->
+
 <script src="/common.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script src="/dashboard.js"></script>
+
+
 </body>
 </html>
