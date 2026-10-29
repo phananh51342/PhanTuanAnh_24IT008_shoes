@@ -6,6 +6,9 @@ const path = require("path");
 const express = require("express");
 const mysql = require("mysql2/promise");
 
+const session = require("express-session");
+const bcrypt = require("bcryptjs");
+
 const app = express();
 
 app.use((req, res, next) => {
@@ -13,6 +16,19 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json());
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: false,
+      maxAge: 1000 * 60 * 60 * 8
+    }
+  })
+);
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -23,7 +39,110 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 5
 });
+function requireAdmin(req, res, next) {
+  if (req.session && req.session.admin) {
+    return next();
+  }
 
+  return res.status(401).json({
+    error: "Vui lòng đăng nhập Admin."
+  });
+}
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (
+      typeof username !== "string" ||
+      typeof password !== "string"
+    ) {
+      return res.status(400).json({
+        error: "Nhập tài khoản và mật khẩu."
+      });
+    }
+
+    const usernameOk =
+      username === process.env.ADMIN_USERNAME;
+
+    const passwordOk =
+      await bcrypt.compare(
+        password,
+        process.env.ADMIN_PASSWORD_HASH || ""
+      );
+
+    if (!usernameOk || !passwordOk) {
+      return res.status(401).json({
+        error: "Sai tài khoản hoặc mật khẩu."
+      });
+    }
+
+    req.session.admin = {
+      username
+    };
+
+    return res.json({
+      message: "Đăng nhập thành công."
+    });
+
+  } catch (error) {
+    console.error("Lỗi đăng nhập:", error);
+
+    return res.status(500).json({
+      error: "Không thể đăng nhập."
+    });
+  }
+});
+app.get("/api/auth/me", (req, res) => {
+  if (!req.session.admin) {
+    return res.status(401).json({
+      loggedIn: false
+    });
+  }
+
+  return res.json({
+    loggedIn: true,
+    username: req.session.admin.username
+  });
+});
+
+
+app.post("/api/auth/logout", (req, res) => {
+  req.session.destroy((error) => {
+    if (error) {
+      return res.status(500).json({
+        error: "Không đăng xuất được."
+      });
+    }
+
+    res.clearCookie("connect.sid");
+
+    return res.json({
+      message: "Đã đăng xuất."
+    });
+  });
+});
+const adminPages = new Set([
+  "/",
+  "/index.html",
+  "/campaigns.html",
+  "/email.html",
+  "/tracking.html",
+  "/products.html",
+  "/customers.html"
+]);
+
+
+app.use((req, res, next) => {
+
+  if (
+    adminPages.has(req.path) &&
+    !req.session.admin
+  ) {
+    return res.redirect("/login.html");
+  }
+
+  next();
+});
 app.use(express.static(path.join(__dirname, "public")));
 
 // Lấy danh sách khách hàng
@@ -471,9 +590,9 @@ app.get("/api/campaigns", async (req, res) => {
       SELECT
         c.id, c.name, c.subject, c.target_group,
         c.status, c.created_at,
-        p.name AS product_name
+        COALESCE(p.name, 'Sản phẩm đã xóa') AS product_name
       FROM campaigns c
-      JOIN products p ON p.id = c.product_id
+      LEFT JOIN products p ON p.id = c.product_id
       ORDER BY c.id DESC
     `);
 
@@ -689,6 +808,322 @@ app.get("/api/campaigns/due", async (req, res) => {
     });
   }
 });
+// =====================================================
+// N8N W3 - RETRY EMAIL LỖI
+// Các route automation mới dùng cùng x-api-key với W2.
+// =====================================================
+app.get("/api/retry/failed", requireN8nKey, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT
+        r.id,
+        r.campaign_id,
+        c.name AS campaign_name,
+        r.recipient_email,
+        r.retry_count,
+        r.failed_at,
+        r.error_message
+      FROM campaign_recipients r
+      JOIN campaigns c ON c.id = r.campaign_id
+      WHERE r.status = 'failed'
+        AND r.retry_count < 3
+        AND r.send_round = c.send_round
+        AND c.status IN ('sending', 'failed')
+      ORDER BY (r.failed_at IS NULL) ASC, r.failed_at ASC, r.id ASC
+      LIMIT 20
+    `);
+
+    return res.json(rows);
+  } catch (error) {
+    console.error("Lỗi lấy email cần retry:", error.message);
+    return res.status(500).json({ error: "Không lấy được email lỗi." });
+  }
+});
+
+app.post("/api/retry/requeue", requireN8nKey, async (req, res) => {
+  const recipientId = Number(req.body.recipient_id);
+
+  if (!Number.isInteger(recipientId) || recipientId < 1) {
+    return res.status(400).json({ error: "recipient_id không hợp lệ." });
+  }
+
+  let connection;
+
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [rows] = await connection.execute(`
+      SELECT
+        r.id,
+        r.campaign_id,
+        r.send_round,
+        r.status,
+        r.retry_count,
+        c.status AS campaign_status,
+        c.send_round AS campaign_send_round
+      FROM campaign_recipients r
+      JOIN campaigns c ON c.id = r.campaign_id
+      WHERE r.id = ?
+      FOR UPDATE
+    `, [recipientId]);
+
+    if (!rows.length) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Không tìm thấy email lỗi." });
+    }
+
+    const item = rows[0];
+
+    if (item.status !== "failed") {
+      await connection.rollback();
+      return res.status(409).json({ error: "Email này hiện không ở trạng thái failed." });
+    }
+
+    if (Number(item.retry_count) >= 3) {
+      await connection.rollback();
+      return res.status(409).json({ error: "Email đã vượt quá 3 lần retry." });
+    }
+
+    if (Number(item.send_round) !== Number(item.campaign_send_round)) {
+      await connection.rollback();
+      return res.status(409).json({ error: "Email lỗi thuộc lần gửi cũ, không retry nữa." });
+    }
+
+    if (!["sending", "failed"].includes(item.campaign_status)) {
+      await connection.rollback();
+      return res.status(409).json({ error: "Chiến dịch hiện không cho phép retry." });
+    }
+
+    await connection.execute(`
+      UPDATE campaign_recipients
+      SET status = 'pending',
+          retry_count = retry_count + 1,
+          sent_at = NULL,
+          error_message = NULL
+      WHERE id = ?
+    `, [recipientId]);
+
+    await connection.execute(`
+      UPDATE campaigns
+      SET status = 'sending'
+      WHERE id = ?
+        AND status IN ('sending', 'failed')
+    `, [item.campaign_id]);
+
+    await connection.commit();
+
+    return res.json({
+      message: "Đã đưa email lỗi trở lại hàng chờ.",
+      recipient_id: recipientId,
+      retry_count: Number(item.retry_count) + 1
+    });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error("Lỗi requeue email:", error.message);
+    return res.status(500).json({ error: "Không đưa lại email vào hàng chờ." });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// =====================================================
+// N8N W4 - THEO DÕI / ĐỒNG BỘ TRẠNG THÁI CHIẾN DỊCH
+// =====================================================
+app.get("/api/campaigns/stats", requireN8nKey, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT
+        c.id AS campaign_id,
+        c.name AS campaign_name,
+        c.status AS current_status,
+        c.send_round,
+        COUNT(r.id) AS total,
+        SUM(CASE WHEN r.status = 'pending' THEN 1 ELSE 0 END) AS pending,
+        SUM(CASE WHEN r.status = 'sending' THEN 1 ELSE 0 END) AS processing,
+        SUM(CASE WHEN r.status = 'sent' THEN 1 ELSE 0 END) AS sent,
+        SUM(CASE WHEN r.status = 'failed' THEN 1 ELSE 0 END) AS failed,
+        SUM(CASE WHEN r.status = 'skipped' THEN 1 ELSE 0 END) AS skipped
+      FROM campaigns c
+      LEFT JOIN campaign_recipients r
+        ON r.campaign_id = c.id
+       AND r.send_round = c.send_round
+      WHERE c.send_round > 0
+        AND c.status IN ('sending', 'failed', 'completed')
+      GROUP BY c.id, c.name, c.status, c.send_round
+      ORDER BY c.id DESC
+    `);
+
+    const result = rows.map((row) => {
+      const pending = Number(row.pending || 0);
+      const processing = Number(row.processing || 0);
+      const failed = Number(row.failed || 0);
+
+      let status = "completed";
+      if (pending > 0 || processing > 0) status = "sending";
+      else if (failed > 0) status = "failed";
+
+      return {
+        campaign_id: row.campaign_id,
+        campaign_name: row.campaign_name,
+        send_round: Number(row.send_round || 0),
+        total: Number(row.total || 0),
+        pending,
+        processing,
+        sent: Number(row.sent || 0),
+        failed,
+        skipped: Number(row.skipped || 0),
+        current_status: row.current_status,
+        status
+      };
+    });
+
+    return res.json(result);
+  } catch (error) {
+    console.error("Lỗi lấy thống kê chiến dịch:", error.message);
+    return res.status(500).json({ error: "Không lấy được thống kê chiến dịch." });
+  }
+});
+
+app.post("/api/campaigns/update-status", requireN8nKey, async (req, res) => {
+  const campaignId = Number(req.body.campaign_id);
+  const status = String(req.body.status || "");
+
+  if (!Number.isInteger(campaignId) || campaignId < 1) {
+    return res.status(400).json({ error: "campaign_id không hợp lệ." });
+  }
+
+  if (!["sending", "failed", "completed"].includes(status)) {
+    return res.status(400).json({ error: "Trạng thái chiến dịch không hợp lệ." });
+  }
+
+  try {
+    const [result] = await pool.execute(`
+      UPDATE campaigns
+      SET status = ?
+      WHERE id = ?
+        AND status IN ('sending', 'failed', 'completed')
+    `, [status, campaignId]);
+
+    if (!result.affectedRows) {
+      const [rows] = await pool.execute(
+        "SELECT id, status FROM campaigns WHERE id = ?",
+        [campaignId]
+      );
+
+      if (!rows.length) {
+        return res.status(404).json({ error: "Không tìm thấy chiến dịch." });
+      }
+
+      return res.status(409).json({
+        error: `Không cập nhật trạng thái từ ${rows[0].status}.`
+      });
+    }
+
+    return res.json({
+      message: "Đã đồng bộ trạng thái chiến dịch.",
+      campaign_id: campaignId,
+      status
+    });
+  } catch (error) {
+    console.error("Lỗi cập nhật trạng thái chiến dịch:", error.message);
+    return res.status(500).json({ error: "Không cập nhật được trạng thái chiến dịch." });
+  }
+});
+
+// =====================================================
+// N8N W5 - BÁO CÁO CHIẾN DỊCH HOÀN TẤT
+// =====================================================
+app.get("/api/reports/completed-campaigns", requireN8nKey, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT
+        c.id AS campaign_id,
+        c.name AS campaign_name,
+        c.send_round,
+        COUNT(r.id) AS total,
+        SUM(CASE WHEN r.status = 'sent' THEN 1 ELSE 0 END) AS sent,
+        SUM(CASE WHEN r.first_opened_at IS NOT NULL THEN 1 ELSE 0 END) AS opened,
+        SUM(CASE WHEN r.first_clicked_at IS NOT NULL THEN 1 ELSE 0 END) AS clicked
+      FROM campaigns c
+      LEFT JOIN campaign_recipients r
+        ON r.campaign_id = c.id
+       AND r.send_round = c.send_round
+      WHERE c.status = 'completed'
+        AND c.send_round > 0
+      GROUP BY c.id, c.name, c.send_round
+      ORDER BY c.id DESC
+      LIMIT 50
+    `);
+
+    return res.json(rows.map((row) => ({
+      campaign_id: row.campaign_id,
+      campaign_name: row.campaign_name,
+      send_round: Number(row.send_round || 0),
+      total: Number(row.total || 0),
+      sent: Number(row.sent || 0),
+      opened: Number(row.opened || 0),
+      clicked: Number(row.clicked || 0)
+    })));
+  } catch (error) {
+    console.error("Lỗi tạo dữ liệu báo cáo:", error.message);
+    return res.status(500).json({ error: "Không lấy được dữ liệu báo cáo." });
+  }
+});
+
+// =====================================================
+// N8N W6 - CẢNH BÁO LỖI GẦN ĐÂY
+// =====================================================
+app.get("/api/errors/recent", requireN8nKey, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT
+        r.id,
+        r.recipient_email,
+        r.status,
+        r.retry_count,
+        r.failed_at,
+        r.error_message,
+        c.id AS campaign_id,
+        c.name AS campaign_name
+      FROM campaign_recipients r
+      JOIN campaigns c ON c.id = r.campaign_id
+      WHERE r.failed_at IS NOT NULL
+        AND r.failed_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+      ORDER BY r.failed_at DESC
+      LIMIT 10
+    `);
+
+    if (!rows.length) {
+      return res.json({
+        has_error: false,
+        message: "",
+        created_at: null,
+        total_errors: 0
+      });
+    }
+
+    const latest = rows[0];
+    const detail = latest.error_message || "Email đã từng gửi lỗi và có thể đang được retry.";
+
+    return res.json({
+      has_error: true,
+      message:
+        `Có ${rows.length} email phát sinh lỗi trong 5 phút gần đây. ` +
+        `Gần nhất: chiến dịch #${latest.campaign_id} - ${latest.campaign_name}, ` +
+        `email ${latest.recipient_email}. Chi tiết: ${detail}`,
+      created_at: latest.failed_at,
+      total_errors: rows.length,
+      campaign_id: latest.campaign_id,
+      recipient_email: latest.recipient_email,
+      retry_count: Number(latest.retry_count || 0)
+    });
+  } catch (error) {
+    console.error("Lỗi lấy cảnh báo gần đây:", error.message);
+    return res.status(500).json({ error: "Không lấy được lỗi gần đây." });
+  }
+});
+
 // Xem chi tiết chiến dịch và số khách đủ điều kiện
 app.get("/api/campaigns/:id", async (req, res) => {
   const id = Number(req.params.id);
@@ -700,11 +1135,11 @@ app.get("/api/campaigns/:id", async (req, res) => {
   try {
     const [rows] = await pool.execute(`
       SELECT c.*,
-             p.name AS product_name,
+             COALESCE(p.name, 'Sản phẩm đã xóa') AS product_name,
              p.price, p.sale_price, p.description,
              p.product_url, p.image_url
       FROM campaigns c
-      JOIN products p ON p.id = c.product_id
+      LEFT JOIN products p ON p.id = c.product_id
       WHERE c.id = ?
     `, [id]);
 
@@ -1110,7 +1545,7 @@ app.post("/api/worker/next", requireN8nKey, async (req, res) => {
   FROM campaign_recipients r
   JOIN customers u ON u.id = r.customer_id
   JOIN campaigns c ON c.id = r.campaign_id
-  JOIN products p ON p.id = c.product_id
+  LEFT JOIN products p ON p.id = c.product_id
   WHERE r.status = 'pending'
   AND c.status = 'sending'
   AND r.send_round = c.send_round
@@ -1255,11 +1690,13 @@ app.post("/api/worker/result", requireN8nKey, async (req, res) => {
       UPDATE campaign_recipients
       SET status = ?,
           sent_at = CASE WHEN ? = 'sent' THEN NOW() ELSE NULL END,
-          error_message = ?
+          error_message = ?,
+          failed_at = CASE WHEN ? = 'failed' THEN NOW() ELSE failed_at END
       WHERE id = ? AND status = 'sending'
     `, [
       status, status,
       status === "failed" ? errorMessage : null,
+      status,
       id
     ]);
 
@@ -1332,7 +1769,7 @@ app.get("/t/c/:token", async (req, res) => {
       SELECT r.id, p.product_url
       FROM campaign_recipients r
       JOIN campaigns c ON c.id = r.campaign_id
-      JOIN products p ON p.id = c.product_id
+      LEFT JOIN products p ON p.id = c.product_id
       WHERE r.tracking_token = ?
       LIMIT 1
     `, [token]);
@@ -1442,7 +1879,9 @@ app.get("/api/campaigns/:id/recipients", async (req, res) => {
     r.sent_at,
     r.first_opened_at,
     r.first_clicked_at,
-    r.error_message
+    r.error_message,
+    r.retry_count,
+    r.failed_at
   FROM campaign_recipients r
   JOIN customers u
     ON u.id = r.customer_id

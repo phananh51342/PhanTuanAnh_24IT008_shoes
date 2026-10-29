@@ -183,6 +183,8 @@ function drawCampaignStatusChart(
 
     approved: 0,
 
+    scheduled: 0,
+
     sending: 0,
 
     completed: 0,
@@ -235,6 +237,8 @@ function drawCampaignStatusChart(
 
             "Đã duyệt",
 
+            "Đã hẹn giờ",
+
             "Đang gửi",
 
             "Hoàn tất",
@@ -256,6 +260,8 @@ function drawCampaignStatusChart(
 
                 counts.approved,
 
+                counts.scheduled,
+
                 counts.sending,
 
                 counts.completed,
@@ -272,6 +278,8 @@ function drawCampaignStatusChart(
                 "#94a3b8",
 
                 "#3b82f6",
+
+                "#8b5cf6",
 
                 "#f59e0b",
 
