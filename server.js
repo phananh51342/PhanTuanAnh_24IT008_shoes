@@ -2121,6 +2121,164 @@ app.post("/api/campaigns/:id/schedule", async (req, res) => {
   }
 });
 
+
+// =====================================================
+// N8N W7 - BÁO CÁO TOÀN BỘ CHIẾN DỊCH
+// =====================================================
+app.get("/api/reports/all-campaigns", requireN8nKey, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT
+        c.id AS campaign_id,
+        c.name AS campaign_name,
+        c.status,
+        c.send_round,
+        COUNT(r.id) AS total,
+        SUM(CASE WHEN r.status = 'sent' THEN 1 ELSE 0 END) AS sent,
+        SUM(CASE WHEN r.status = 'failed' THEN 1 ELSE 0 END) AS failed,
+        SUM(CASE WHEN r.first_opened_at IS NOT NULL THEN 1 ELSE 0 END) AS opened,
+        SUM(CASE WHEN r.first_clicked_at IS NOT NULL THEN 1 ELSE 0 END) AS clicked
+      FROM campaigns c
+      LEFT JOIN campaign_recipients r
+        ON r.campaign_id = c.id
+       AND r.send_round = c.send_round
+      GROUP BY
+        c.id,
+        c.name,
+        c.status,
+        c.send_round
+      ORDER BY c.id DESC
+    `);
+
+    const report = rows.map((row) => {
+      const total = Number(row.total || 0);
+      const sent = Number(row.sent || 0);
+      const failed = Number(row.failed || 0);
+      const opened = Number(row.opened || 0);
+      const clicked = Number(row.clicked || 0);
+
+      return {
+        campaign_id: row.campaign_id,
+        campaign_name: row.campaign_name,
+        status: row.status,
+        send_round: Number(row.send_round || 0),
+        total,
+        sent,
+        failed,
+        opened,
+        clicked,
+        open_rate: sent > 0 ? Number(((opened / sent) * 100).toFixed(1)) : 0,
+        click_rate: sent > 0 ? Number(((clicked / sent) * 100).toFixed(1)) : 0
+      };
+    });
+
+    return res.json(report);
+  } catch (error) {
+    console.error("Lỗi lấy báo cáo toàn bộ chiến dịch:", error.message);
+    return res.status(500).json({
+      error: "Không lấy được báo cáo toàn bộ chiến dịch."
+    });
+  }
+});
+
+
+// =====================================================
+// N8N W8 - LẤY KHÁCH CHƯA NHẬN THƯ CHÀO MỪNG
+// =====================================================
+app.get("/api/welcome/pending", requireN8nKey, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT
+        id AS customer_id,
+        full_name,
+        email,
+        interest_group
+      FROM customers
+      WHERE welcome_sent = 0
+        AND subscribed = 1
+      ORDER BY id ASC
+      LIMIT 1
+    `);
+
+    if (!rows.length) {
+      return res.json({
+        has_customer: false,
+        customer_id: null,
+        full_name: "",
+        email: "",
+        interest_group: ""
+      });
+    }
+
+    return res.json({
+      has_customer: true,
+      customer_id: rows[0].customer_id,
+      full_name: rows[0].full_name,
+      email: rows[0].email,
+      interest_group: rows[0].interest_group
+    });
+  } catch (error) {
+    console.error("Lỗi lấy khách chờ thư chào mừng:", error.message);
+    return res.status(500).json({
+      error: "Không lấy được khách hàng chờ thư chào mừng."
+    });
+  }
+});
+
+
+// =====================================================
+// N8N W8 - ĐÁNH DẤU ĐÃ GỬI THƯ CHÀO MỪNG
+// =====================================================
+app.post("/api/welcome/mark-sent", requireN8nKey, async (req, res) => {
+  const customerId = Number(req.body.customer_id);
+
+  if (!Number.isInteger(customerId) || customerId < 1) {
+    return res.status(400).json({
+      error: "customer_id không hợp lệ."
+    });
+  }
+
+  try {
+    const [result] = await pool.execute(`
+      UPDATE customers
+      SET welcome_sent = 1
+      WHERE id = ?
+        AND welcome_sent = 0
+    `, [customerId]);
+
+    if (!result.affectedRows) {
+      const [rows] = await pool.execute(`
+        SELECT id, welcome_sent
+        FROM customers
+        WHERE id = ?
+      `, [customerId]);
+
+      if (!rows.length) {
+        return res.status(404).json({
+          error: "Không tìm thấy khách hàng."
+        });
+      }
+
+      return res.json({
+        message: "Khách hàng này đã được đánh dấu gửi thư chào mừng trước đó.",
+        customer_id: customerId,
+        welcome_sent: Number(rows[0].welcome_sent || 0)
+      });
+    }
+
+    return res.json({
+      message: "Đã đánh dấu gửi thư chào mừng.",
+      customer_id: customerId,
+      welcome_sent: 1
+    });
+  } catch (error) {
+    console.error("Lỗi cập nhật welcome_sent:", error.message);
+    return res.status(500).json({
+      error: "Không cập nhật được trạng thái thư chào mừng."
+    });
+  }
+});
+
 async function startServer() {
   try {
     await pool.query("SELECT 1");
