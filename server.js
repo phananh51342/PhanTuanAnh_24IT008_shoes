@@ -2279,6 +2279,202 @@ app.post("/api/welcome/mark-sent", requireN8nKey, async (req, res) => {
   }
 });
 
+/* ============================================
+   W7 - CHĂM SÓC KHÁCH HÀNG ĐÃ NHẤP EMAIL
+============================================ */
+
+// API 1: Lấy khách hàng cần chăm sóc
+app.get("/api/followup/pending", requireN8nKey, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT
+        r.id AS recipient_id,
+        r.customer_id,
+        r.campaign_id,
+        r.send_round,
+        u.full_name,
+        u.email,
+        u.interest_group,
+        c.name AS campaign_name,
+        r.first_clicked_at AS clicked_at
+      FROM campaign_recipients r
+
+      JOIN customers u
+        ON u.id = r.customer_id
+
+      JOIN campaigns c
+        ON c.id = r.campaign_id
+
+      WHERE r.first_clicked_at IS NOT NULL
+        AND r.status = 'sent'
+        AND r.send_round = c.send_round
+        AND u.subscribed = 1
+        AND u.email IS NOT NULL
+        AND TRIM(u.email) <> ''
+
+        -- Không chăm sóc lại cùng một lượt nhận
+        AND NOT EXISTS (
+          SELECT 1
+          FROM followup_emails f
+          WHERE f.recipient_id = r.id
+        )
+
+        -- Không gửi quá một thư chăm sóc
+        -- cho cùng khách trong 7 ngày
+        AND NOT EXISTS (
+          SELECT 1
+          FROM followup_emails f2
+          WHERE f2.customer_id = u.id
+            AND f2.sent_at >= DATE_SUB(
+              NOW(), INTERVAL 7 DAY
+            )
+        )
+
+      ORDER BY r.first_clicked_at DESC
+      LIMIT 1
+    `);
+
+    if (!rows.length) {
+      return res.json({
+        has_customer: false,
+        message: "Không có khách cần chăm sóc."
+      });
+    }
+
+    const customer = rows[0];
+
+    return res.json({
+      has_customer: true,
+      recipient_id: customer.recipient_id,
+      customer_id: customer.customer_id,
+      campaign_id: customer.campaign_id,
+      send_round: customer.send_round,
+      full_name: customer.full_name,
+      email: customer.email,
+      interest_group: customer.interest_group,
+      campaign_name: customer.campaign_name,
+      clicked_at: customer.clicked_at,
+      interaction: "clicked"
+    });
+
+  } catch (error) {
+    console.error(
+      "W7 - Lỗi lấy khách chăm sóc:",
+      error
+    );
+
+    return res.status(500).json({
+      error: "Không lấy được khách cần chăm sóc."
+    });
+  }
+});
+
+
+// API 2: Đánh dấu đã gửi email chăm sóc
+app.post("/api/followup/mark-sent", requireN8nKey, async (req, res) => {
+  const recipientId = Number(req.body?.recipient_id);
+
+  if (!Number.isInteger(recipientId) || recipientId <= 0) {
+    return res.status(400).json({
+      error: "recipient_id không hợp lệ."
+    });
+  }
+
+  try {
+    // Kiểm tra bản ghi đã được đánh dấu chưa
+    const [existing] = await pool.execute(`
+      SELECT id
+      FROM followup_emails
+      WHERE recipient_id = ?
+      LIMIT 1
+    `, [recipientId]);
+
+    if (existing.length) {
+      return res.json({
+        success: true,
+        already_recorded: true,
+        recipient_id: recipientId,
+        message: "Email chăm sóc đã được ghi nhận trước đó."
+      });
+    }
+
+    // Xác nhận người nhận vẫn hợp lệ
+    const [rows] = await pool.execute(`
+      SELECT
+        r.id,
+        r.customer_id,
+        r.campaign_id,
+        r.send_round
+
+      FROM campaign_recipients r
+
+      JOIN customers u
+        ON u.id = r.customer_id
+
+      JOIN campaigns c
+        ON c.id = r.campaign_id
+
+      WHERE r.id = ?
+        AND r.status = 'sent'
+        AND r.first_clicked_at IS NOT NULL
+        AND r.send_round = c.send_round
+        AND u.subscribed = 1
+
+      LIMIT 1
+    `, [recipientId]);
+
+    if (!rows.length) {
+      return res.status(409).json({
+        error: "Người nhận không đủ điều kiện chăm sóc."
+      });
+    }
+
+    const r = rows[0];
+
+    await pool.execute(`
+      INSERT INTO followup_emails (
+        recipient_id,
+        customer_id,
+        campaign_id,
+        send_round,
+        sent_at
+      )
+      VALUES (?, ?, ?, ?, NOW())
+    `, [
+      r.id,
+      r.customer_id,
+      r.campaign_id,
+      r.send_round
+    ]);
+
+    return res.json({
+      success: true,
+      already_recorded: false,
+      recipient_id: recipientId,
+      message: "Đã ghi nhận email chăm sóc."
+    });
+
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.json({
+        success: true,
+        already_recorded: true,
+        recipient_id: recipientId,
+        message: "Email chăm sóc đã được ghi nhận."
+      });
+    }
+
+    console.error(
+      "W7 - Lỗi ghi nhận chăm sóc:",
+      error
+    );
+
+    return res.status(500).json({
+      error: "Không ghi nhận được email chăm sóc."
+    });
+  }
+});
+
 async function startServer() {
   try {
     await pool.query("SELECT 1");
